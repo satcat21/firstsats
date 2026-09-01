@@ -659,7 +659,7 @@ export class BoardingWatch implements OnDestroy {
     onboard(): void {
         openOnboardDialog(this.dialog, {
             accent: this.arkade.stored()?.accent,
-            utxos: this.arkade.boarding(),
+            utxos: () => this.arkade.boarding(),
             explorer: (txid) => this.explorer(txid),
             run: (only) => this.arkade.onboard(only),
             attempt: () => this.arkade.roundAttempt(),

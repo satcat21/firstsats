@@ -42,8 +42,13 @@ import { RoundClock, countdownText } from "../core/round-clock";
 export interface OnboardData {
     /** The wallet whose coins these are, so the dialog wears its colour. */
     readonly accent?: Accent;
-    /** Every output on a boarding address, confirmed or not. */
-    readonly utxos: readonly BoardingUtxoView[];
+    /**
+     * Every output on a boarding address, confirmed or not.
+     *
+     * A function, like everything else here: outputs confirm while the dialog
+     * is open, and that is the event it exists to wait for.
+     */
+    readonly utxos: () => readonly BoardingUtxoView[];
     /** Block-explorer link for a transaction, when the network has one. */
     readonly explorer: (txid: string) => string | null;
     /** Onboards the chosen outpoints and resolves with the commitment txid. */
@@ -82,7 +87,7 @@ export interface OnboardData {
                     <p>{{ i18n.t("onboardDlg.choose") }}</p>
 
                     <ul class="utxos">
-                        @for (utxo of data.utxos; track utxo.outpoint) {
+                        @for (utxo of utxos(); track utxo.outpoint) {
                             <li [class.waiting]="!utxo.confirmed">
                                 <mat-checkbox
                                     [disabled]="!utxo.confirmed"
@@ -342,25 +347,50 @@ export class OnboardDialog {
     readonly txid = signal<string | null>(null);
     readonly failure = signal("");
 
-    /** Everything confirmed, pre-ticked: the usual answer is "all of it". */
-    readonly picked = signal<ReadonlySet<string>>(
-        new Set(this.data.utxos.filter((u) => u.confirmed).map((u) => u.outpoint))
-    );
+    /**
+     * The outputs, read live rather than captured when the dialog opened.
+     *
+     * A boarding output confirms on its own schedule, and waiting for that is
+     * the normal case here -- so a snapshot meant a dialog opened a moment too
+     * early showed nothing tickable and a permanently disabled button, and no
+     * amount of waiting with it open would change that.
+     */
+    readonly utxos = computed(() => this.data.utxos());
+
+    /**
+     * What the reader has explicitly unticked.
+     *
+     * Held as the exception rather than the selection, so that "everything
+     * confirmed" stays the default as outputs confirm underneath -- a plain set
+     * of picks could only ever describe the outputs that existed when it was
+     * built.
+     */
+    private readonly unticked = signal<ReadonlySet<string>>(new Set());
+
+    /** Everything confirmed, minus what the reader took out. */
+    readonly picked = computed(() => {
+        const out = this.unticked();
+        return new Set(
+            this.utxos()
+                .filter((utxo) => utxo.confirmed && !out.has(utxo.outpoint))
+                .map((utxo) => utxo.outpoint)
+        );
+    });
 
     readonly chosenValue = computed(() =>
-        this.data.utxos
+        this.utxos()
             .filter((utxo) => this.picked().has(utxo.outpoint))
             .reduce((sum, utxo) => sum + utxo.value, 0)
     );
 
     readonly nothingConfirmed = computed(() =>
-        this.data.utxos.every((utxo) => !utxo.confirmed)
+        this.utxos().every((utxo) => !utxo.confirmed)
     );
 
     toggle(outpoint: string): void {
-        const next = new Set(this.picked());
+        const next = new Set(this.unticked());
         if (!next.delete(outpoint)) next.add(outpoint);
-        this.picked.set(next);
+        this.unticked.set(next);
     }
 
     /** Both ends of the txid; the middle of one tells you nothing. */

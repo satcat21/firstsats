@@ -351,6 +351,62 @@ describe("onboard", () => {
         );
         expect(ramps.onboarded).toHaveLength(0);
     });
+
+    /*
+     * The picker in the web app ticks boxes against `boardingUtxos()` and hands
+     * the chosen `outpoint` strings straight back to `onboard`. Nothing else
+     * checks that those two agree on the format, and a drift between them fails
+     * in the least helpful way available: every output is filtered out, and the
+     * error says there is nothing confirmed to onboard while the money is
+     * plainly on screen.
+     */
+    it("accepts the outpoints it hands out, so the picker cannot drift from it", async () => {
+        const { account, ramps } = makeAccount({
+            boardingUtxos: [boardingUtxo(60_000), boardingUtxo(40_000, "c".repeat(64))],
+        });
+
+        const views = await account.boardingUtxos();
+        const chosen = views.filter((view) => view.value === 40_000);
+        await account.onboard(chosen.map((view) => view.outpoint));
+
+        expect(chosen).toHaveLength(1);
+        expect(ramps.onboarded[0]?.utxos).toHaveLength(1);
+        expect(ramps.onboarded[0]?.utxos?.[0]?.value).toBe(40_000);
+    });
+
+    it("reports each output with its confirmation state and outpoint", async () => {
+        const { account } = makeAccount({
+            boardingUtxos: [
+                boardingUtxo(60_000),
+                boardingUtxo(40_000, "c".repeat(64), false),
+            ],
+        });
+
+        const views = await account.boardingUtxos();
+
+        expect(views[0]).toMatchObject({
+            value: 60_000,
+            confirmed: true,
+            outpoint: `${"b".repeat(64)}:0`,
+        });
+        // The one thing the onboard button reads to decide whether it can act.
+        expect(views[1]?.confirmed).toBe(false);
+    });
+
+    /*
+     * An empty selection means "onboard these zero outputs", not "onboard
+     * everything" -- an empty array is truthy, so it filters everything out.
+     * The dialog disables its button rather than sending one; this pins the
+     * behaviour so a caller that does send one is not silently surprised.
+     */
+    it("treats an empty selection as nothing rather than everything", async () => {
+        const { account, ramps } = makeAccount({
+            boardingUtxos: [boardingUtxo(60_000)],
+        });
+
+        await expect(account.onboard([])).rejects.toThrow();
+        expect(ramps.onboarded).toHaveLength(0);
+    });
 });
 
 describe("offboard", () => {
