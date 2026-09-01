@@ -20,6 +20,7 @@ import {
     effect,
     inject,
 } from "@angular/core";
+import { NgTemplateOutlet } from "@angular/common";
 import { MatButtonModule } from "@angular/material/button";
 import { MatCardModule } from "@angular/material/card";
 import { MatChipsModule } from "@angular/material/chips";
@@ -38,6 +39,7 @@ import { openOnboardDialog } from "../ui/onboard-dialog";
     selector: "app-boarding-watch",
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
+        NgTemplateOutlet,
         MatButtonModule,
         MatCardModule,
         MatChipsModule,
@@ -106,11 +108,21 @@ import { openOnboardDialog } from "../ui/onboard-dialog";
                 <!-- The answer to "so what do I do now?" put where the question
                      is asked, rather than as a sentence pointing at another
                      tab. Same action as the Wallet tab's button. -->
-                @if (awaitingOnboard()) {
+                <!-- Always rendered, disabled until there is something to onboard.
+                     The guide tells the reader to press this button, and a button
+                     that is simply absent reads as a broken instruction; a
+                     disabled one that says what is missing teaches the rule.
+                     Tooltip on the wrapper, because a disabled button receives no
+                     pointer events and would never show it. -->
+                <span
+                    class="onboard-wrap"
+                    [matTooltip]="i18n.t('wallet.onboardNeedsCoins')"
+                    [matTooltipDisabled]="awaitingOnboard()"
+                >
                     <button
                         matButton="filled"
                         class="onboard"
-                        [disabled]="arkade.busy() !== null"
+                        [disabled]="!awaitingOnboard() || arkade.busy() !== null"
                         (click)="onboard()"
                     >
                         <mat-icon [class.spin]="arkade.busy() === 'onboard'">
@@ -123,13 +135,17 @@ import { openOnboardDialog } from "../ui/onboard-dialog";
                         {{
                             arkade.busy() === "onboard"
                                 ? i18n.t("wallet.onboarding")
-                                : i18n.t(
-                                      "wallet.onboardCta",
-                                      i18n.sats(arkade.boardingConfirmed())
-                                  )
+                                : awaitingOnboard()
+                                  ? i18n.t(
+                                        "wallet.onboardCta",
+                                        i18n.sats(arkade.boardingConfirmed())
+                                    )
+                                  : i18n.t("wallet.onboardEmptyCta")
                         }}
                     </button>
+                </span>
 
+                @if (awaitingOnboard()) {
                     <!-- The wait has a length, so say it. A batch round is the
                          one part of this flow nobody can hurry, and a spinner
                          with no clock behind it looks the same as a hang. -->
@@ -190,10 +206,10 @@ import { openOnboardDialog } from "../ui/onboard-dialog";
                     </h3>
                     <p class="subtle">{{ i18n.t("chain.usedHint") }}</p>
                     <ul class="addresses">
-                        @for (entry of chain.usedAddresses(); track entry.address) {
-                            <li [class.current]="entry.current">
+                        @for (group of addressGroups(); track group.entry.address) {
+                            <li [class.current]="group.entry.current">
                                 <div class="row">
-                                    @if (explorerAddress(entry.address); as url) {
+                                    @if (explorerAddress(group.entry.address); as url) {
                                         <a
                                             class="mono addr"
                                             [href]="url"
@@ -201,33 +217,66 @@ import { openOnboardDialog } from "../ui/onboard-dialog";
                                             rel="noopener noreferrer"
                                             [matTooltip]="i18n.t('chain.openAddress')"
                                         >
-                                            {{ shortAddr(entry.address) }}
+                                            {{ shortAddr(group.entry.address) }}
                                             <mat-icon class="inline" aria-hidden="true"
                                                 >open_in_new</mat-icon
                                             >
                                         </a>
                                     } @else {
-                                        <span class="mono addr">{{ shortAddr(entry.address) }}</span>
+                                        <span class="mono addr">{{
+                                            shortAddr(group.entry.address)
+                                        }}</span>
                                     }
                                     <mat-chip-set>
-                                        @if (entry.pending > 0) {
+                                        @if (group.entry.pending > 0) {
                                             <mat-chip class="chip-warn">
-                                                {{ i18n.t("chain.addrPending", i18n.sats(entry.pending)) }}
+                                                {{
+                                                    i18n.t(
+                                                        "chain.addrPending",
+                                                        i18n.sats(group.entry.pending)
+                                                    )
+                                                }}
                                             </mat-chip>
                                         }
-                                        @if (entry.balance > 0) {
+                                        @if (group.entry.balance > 0) {
                                             <mat-chip class="chip-ok">
-                                                {{ i18n.t("chain.addrBalance", i18n.sats(entry.balance)) }}
+                                                {{
+                                                    i18n.t(
+                                                        "chain.addrBalance",
+                                                        i18n.sats(group.entry.balance)
+                                                    )
+                                                }}
                                             </mat-chip>
-                                        } @else if (entry.received > 0) {
+                                        } @else if (group.entry.received > 0) {
                                             <mat-chip class="chip-neutral">
-                                                {{ i18n.t("chain.addrSpent", i18n.sats(entry.received)) }}
+                                                {{
+                                                    i18n.t(
+                                                        "chain.addrSpent",
+                                                        i18n.sats(group.entry.received)
+                                                    )
+                                                }}
                                             </mat-chip>
                                         }
                                     </mat-chip-set>
                                 </div>
-                                @if (entry.current) {
+                                @if (group.entry.current) {
                                     <p class="subtle note">{{ i18n.t("chain.addrCurrent") }}</p>
+                                }
+                                <!-- The payments behind the chips above, nested rather
+                                     than listed again below: one inbound payment used
+                                     to draw twice, once as a chip on its address and
+                                     once as a card of its own saying the same amount. -->
+                                @if (group.txs.length) {
+                                    <ul class="nested-txs">
+                                        @for (tx of group.txs; track tx.txid) {
+                                            <li>
+                                                <ng-container
+                                                    [ngTemplateOutlet]="txRow"
+                                                    [ngTemplateOutletContext]="{ $implicit: tx }"
+                                                ></ng-container>
+                                            </li>
+                                        }
+                                    </ul>
                                 }
                             </li>
                         }
@@ -241,55 +290,56 @@ import { openOnboardDialog } from "../ui/onboard-dialog";
                     }
                 }
 
-                @if (chain.transactions().length) {
+                <!-- Payments whose address has since been emptied, so it is no
+                     longer in the list above and they would otherwise vanish. -->
+                @if (otherTxs().length) {
                     <!-- Plain rows, same reason as the Activity list: a
                          mat-list-item clips anything past its fixed height. -->
                     <ul class="txs">
-                        @for (tx of chain.transactions(); track tx.txid) {
+                        @for (tx of otherTxs(); track tx.txid) {
                             <li>
-                                <div class="row">
-                                    <span class="amount">
-                                        <mat-icon
-                                            aria-hidden="true"
-                                            [class.ok]="tx.confirmed"
-                                        >
-                                            {{ tx.confirmed ? "check_circle" : "pending" }}
-                                        </mat-icon>
-                                        {{ i18n.sats(tx.value) }}
-                                    </span>
-                                    <mat-chip-set>
-                                        <mat-chip
-                                            [class.chip-ok]="tx.confirmed"
-                                            [class.chip-warn]="!tx.confirmed"
-                                        >
-                                            {{
-                                                tx.confirmed
-                                                    ? i18n.t(
-                                                          "chain.txConfirmed",
-                                                          tx.blockHeight ?? 0
-                                                      )
-                                                    : i18n.t("chain.txPending")
-                                            }}
-                                        </mat-chip>
-                                    </mat-chip-set>
-                                </div>
-                                <p class="subtle txid">
-                                    @if (explorer(tx.txid); as url) {
-                                        <a
-                                            class="mono"
-                                            [href]="url"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            >{{ shortId(tx.txid) }}</a
-                                        >
-                                    } @else {
-                                        <span class="mono">{{ shortId(tx.txid) }}</span>
-                                    }
-                                </p>
+                                <ng-container
+                                    [ngTemplateOutlet]="txRow"
+                                    [ngTemplateOutletContext]="{ $implicit: tx }"
+                                ></ng-container>
                             </li>
                         }
                     </ul>
                 }
+
+                <!-- One definition of a payment row, rendered either nested under
+                     its address or standalone above. -->
+                <ng-template #txRow let-tx>
+                    <div class="row">
+                        <span class="amount">
+                            <mat-icon aria-hidden="true" [class.ok]="tx.confirmed">
+                                {{ tx.confirmed ? "check_circle" : "pending" }}
+                            </mat-icon>
+                            {{ i18n.sats(tx.value) }}
+                        </span>
+                        <mat-chip-set>
+                            <mat-chip
+                                [class.chip-ok]="tx.confirmed"
+                                [class.chip-warn]="!tx.confirmed"
+                            >
+                                {{
+                                    tx.confirmed
+                                        ? i18n.t("chain.txConfirmed", tx.blockHeight ?? 0)
+                                        : i18n.t("chain.txPending")
+                                }}
+                            </mat-chip>
+                        </mat-chip-set>
+                    </div>
+                    <p class="subtle txid">
+                        @if (explorer(tx.txid); as url) {
+                            <a class="mono" [href]="url" target="_blank" rel="noopener noreferrer">{{
+                                shortId(tx.txid)
+                            }}</a>
+                        } @else {
+                            <span class="mono">{{ shortId(tx.txid) }}</span>
+                        }
+                    </p>
+                </ng-template>
 
                 @if (chain.checkedAt(); as at) {
                     <p class="subtle when">
@@ -481,6 +531,32 @@ import { openOnboardDialog } from "../ui/onboard-dialog";
             gap: 10px;
         }
 
+        /*
+         * Nested inside an address card, so no border of its own: a rule and the
+         * card's own padding are enough to read as "these belong to the address
+         * above", where a second box would read as a second thing.
+         */
+        .nested-txs {
+            list-style: none;
+            margin: 10px 0 0;
+            padding: 10px 0 0;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nested-txs a {
+            color: var(--accent);
+            overflow-wrap: anywhere;
+        }
+
+        /* Carries the tooltip for the disabled button it wraps, so it must not
+           change how that button lays out. */
+        .onboard-wrap {
+            display: inline-block;
+        }
+
         .txs li {
             padding: 12px 14px;
             border: 1px solid var(--border);
@@ -536,6 +612,35 @@ export class BoardingWatch implements OnDestroy {
     readonly i18n = inject(I18nService);
     readonly clock = inject(RoundClock);
     private readonly dialog = inject(MatDialog);
+
+    /**
+     * Each watched address with the payments that explain its chips.
+     *
+     * The two used to be rendered as sibling lists, so a single inbound payment
+     * appeared twice -- once as `10,000 sats on the way` against the address,
+     * and again as its own card reading `10,000 sats, in mempool`. Grouping puts
+     * the transaction inside the address it paid, where the amount is a detail
+     * of the address rather than a second claim.
+     */
+    readonly addressGroups = computed(() => {
+        const txs = this.chain.transactions();
+        return this.chain.usedAddresses().map((entry) => ({
+            entry,
+            txs: txs.filter((tx) => tx.address === entry.address),
+        }));
+    });
+
+    /**
+     * Payments with no address left to nest under.
+     *
+     * `usedAddresses` only lists addresses still holding or expecting money, so
+     * a payment to an address that has since been onboarded has nowhere to go.
+     * It still belongs on screen -- money that arrived is money that arrived.
+     */
+    readonly otherTxs = computed(() => {
+        const shown = new Set(this.chain.usedAddresses().map((entry) => entry.address));
+        return this.chain.transactions().filter((tx) => !shown.has(tx.address));
+    });
 
     /**
      * Hand the wait to a dialog that can explain it.

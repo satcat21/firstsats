@@ -45,6 +45,9 @@ export const DE: Messages = {
     "wallet.vtxosEmpty": "Noch keine VTXOs. Empfange zuerst etwas Geld.",
     "wallet.expiresIn": "noch {0}",
     "wallet.onboardCta": "{0} offchain bringen",
+    "wallet.onboardEmptyCta": "Coins offchain bringen",
+    "wallet.onboardNeedsCoins":
+        "Noch nichts zum Onboarden. Dafür braucht es bestätigte Onchain-Coins auf deiner Eingangsadresse — das Onboarding tauscht sie im nächsten Batch gegen VTXOs.",
     "wallet.onboarding": "Wartet auf den nächsten Batch…",
     "wallet.refresh": "Aktualisieren",
 
@@ -295,7 +298,7 @@ export const DE: Messages = {
     "tour.receive.cta": "Zu „Empfangen“",
     "tour.onboard.title": "Offchain gehen",
     "tour.onboard.body": "Onchain-Coins auf deiner Boarding-Adresse sind in Ark noch nicht ausgebbar. Das Onboarding tauscht sie gegen VTXOs, indem es der nächsten Batch-Runde beitritt — etwa eine Minute. Es ist der einzige Schritt dieser App, der die Blockchain berührt, und seine Kosten teilen sich alle in der Runde.",
-    "tour.onboard.cta": "Zu „Empfangen“",
+    "tour.onboard.cta": "Zum „Eingang“",
     "tour.send.title": "Eine Zahlung senden",
     "tour.send.body": "Zahlen zerstört einen deiner VTXOs und erzeugt zwei: den der empfangenden Person und dein Wechselgeld. Du signierst, der Server signiert mit, und das ist die ganze Transaktion — kein Block zum Abwarten, keine Gebühr. Beobachte dabei die Zeitleiste daneben.",
     "tour.send.cta": "Zu „Senden“",
@@ -445,6 +448,11 @@ export const DE: Messages = {
     "profile.removeNamed": "{0} löschen",
 
     "tour.dock": "Anleitung neben der Wallet anzeigen",
+    "tour.undock": "Anleitung zurück in ihren Tab",
+    "footer.source": "Quellcode auf GitHub",
+    "footer.inspiredBy": "Inspiriert von",
+    "footer.madeWith": "Gebaut mit",
+    "footer.forCommunity": "für die Bitcoin-Community",
 
     "send.modeOffchain": "In Ark zahlen",
     "send.modeWithdraw": "Onchain auszahlen",

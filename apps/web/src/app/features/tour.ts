@@ -26,9 +26,11 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatCardModule } from "@angular/material/card";
 import { MatExpansionModule } from "@angular/material/expansion";
 import { MatIconModule } from "@angular/material/icon";
+import { MatTooltipModule } from "@angular/material/tooltip";
 import { I18nService } from "../core/i18n.service";
 import type { Messages } from "../core/messages";
 import { ProfileService } from "../core/profile.service";
+import { QuestService } from "../core/quest.service";
 import { WalletRegistry } from "../core/wallet-registry";
 import {
     DiagramExit,
@@ -84,7 +86,10 @@ const CHAPTER_ICONS: Record<ChapterId, string> = {
 const CHAPTER_TARGETS: Partial<Record<ChapterId, TourTarget>> = {
     wallet: "wallet",
     receive: "receive",
-    onboard: "receive",
+    // Onboarding lives in the boarding section of the wallet tab, not on
+    // Receive: the reader is acting on coins they already hold, not waiting
+    // for new ones.
+    onboard: "wallet",
     send: "send",
 };
 
@@ -144,6 +149,7 @@ export function progressFor(state: {
         MatCardModule,
         MatExpansionModule,
         MatIconModule,
+        MatTooltipModule,
         DiagramRails,
         DiagramTree,
         DiagramTransactions,
@@ -160,6 +166,23 @@ export function progressFor(state: {
                     {{ i18n.t("tour.heading") }}
                 </mat-card-title>
             </mat-card-header>
+
+            <!-- The control that moves this panel sits on the panel it moves,
+                 rather than in the header bar, so it is where you are looking
+                 when you decide you want the guide somewhere else. Absent with
+                 two wallets on screen: there is no third column to dock into. -->
+            @if (canDock()) {
+                <button
+                    matIconButton
+                    class="dock-toggle"
+                    [matTooltip]="i18n.t(docked() ? 'tour.undock' : 'tour.dock')"
+                    [attr.aria-label]="i18n.t(docked() ? 'tour.undock' : 'tour.dock')"
+                    [attr.aria-pressed]="docked()"
+                    (click)="toggleDock()"
+                >
+                    <mat-icon>{{ docked() ? "close_fullscreen" : "vertical_split" }}</mat-icon>
+                </button>
+            }
 
             <mat-card-content>
                 <p class="subtle blurb">
@@ -272,6 +295,21 @@ export function progressFor(state: {
             display: block;
         }
 
+        /*
+         * Pinned to the card rather than placed in the header row: the title
+         * wraps on a narrow pane, and a flow-positioned button would be pushed
+         * around by it.
+         */
+        mat-card {
+            position: relative;
+        }
+
+        .dock-toggle {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+        }
+
         .blurb {
             margin: 6px 0 14px;
         }
@@ -375,7 +413,23 @@ export function progressFor(state: {
 export class Tour {
     readonly i18n = inject(I18nService);
     private readonly profiles = inject(ProfileService);
+    private readonly quest = inject(QuestService);
     private readonly wallets = inject(WalletRegistry);
+
+    /**
+     * Whether docking is on offer at all.
+     *
+     * A desktop, single-wallet affordance: with two wallets side by side the
+     * guide has no third column to move into, and quest mode owns the layout.
+     */
+    readonly canDock = computed(() => !this.profiles.split() && !this.quest.enabled());
+
+    /** Where this panel currently is, mirroring the app shell's own test. */
+    readonly docked = computed(() => this.profiles.tourDocked() && this.canDock());
+
+    toggleDock(): void {
+        this.profiles.setTourDocked(!this.profiles.tourDocked());
+    }
 
     readonly chapters = CHAPTERS;
 

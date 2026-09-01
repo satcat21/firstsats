@@ -25,6 +25,13 @@ const RETRY_TX_MS = 30_000;
 /** One payment to the boarding address, as Esplora reports it. */
 export interface ChainTx {
     readonly txid: string;
+    /**
+     * The boarding address it paid into.
+     *
+     * Kept so the panel can show a payment beside the address whose balance it
+     * explains, rather than as a separate row repeating the same amount.
+     */
+    readonly address: string;
     /** Satoshis paid *to* the watched address by this transaction. */
     readonly value: number;
     /** `false` while it is still only in a mempool. */
@@ -484,6 +491,7 @@ async function fetchAddressTxs(
     return body
         .map((tx) => ({
             txid: tx.txid,
+            address,
             value: tx.vout
                 .filter((out) => out.scriptpubkey_address === address)
                 .reduce((sum, out) => sum + out.value, 0),

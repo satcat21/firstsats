@@ -44,6 +44,9 @@ export const PT: Messages = {
     "wallet.vtxosEmpty": "Ainda não há VTXOs. Recebe algum dinheiro primeiro.",
     "wallet.expiresIn": "expira em {0}",
     "wallet.onboardCta": "Levar {0} para fora da cadeia",
+    "wallet.onboardEmptyCta": "Levar moedas para fora da cadeia",
+    "wallet.onboardNeedsCoins":
+        "Ainda não há nada para embarcar. São precisas moedas confirmadas na cadeia no teu endereço de embarque: o embarque troca-as por VTXOs no próximo lote.",
     "wallet.onboarding": "A aguardar o próximo lote…",
     "wallet.refresh": "Atualizar",
 
@@ -294,7 +297,7 @@ export const PT: Messages = {
     "tour.receive.cta": "Ir para Receber",
     "tour.onboard.title": "Sai da cadeia",
     "tour.onboard.body": "As moedas on-chain no teu endereço de embarque ainda não podem ser gastas no Ark. O embarque troca-as por VTXO ao juntar-se à próxima ronda de lote — cerca de um minuto. É o único passo de toda a app que toca a blockchain, e o seu custo é repartido por todos na ronda.",
-    "tour.onboard.cta": "Ir para Receber",
+    "tour.onboard.cta": "Ir para Embarque",
     "tour.send.title": "Envia um pagamento",
     "tour.send.body": "Pagar destrói um dos teus VTXO e cria dois: o de quem recebe e o teu troco. Tu assinas, o servidor coassina, e é essa a transação toda — sem bloco por que esperar e sem comissão a pagar. Observa a linha temporal ao lado enquanto o fazes.",
     "tour.send.cta": "Ir para Enviar",
@@ -444,6 +447,11 @@ export const PT: Messages = {
     "profile.removeNamed": "Eliminar {0}",
 
     "tour.dock": "Mostrar o guia ao lado da carteira",
+    "tour.undock": "Voltar a colocar o guia no seu separador",
+    "footer.source": "Código no GitHub",
+    "footer.inspiredBy": "Inspirado por",
+    "footer.madeWith": "Feito com",
+    "footer.forCommunity": "para a comunidade Bitcoin",
 
     "send.modeOffchain": "Pagar no Ark",
     "send.modeWithdraw": "Levantar on-chain",

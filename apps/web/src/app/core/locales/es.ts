@@ -45,6 +45,9 @@ export const ES: Messages = {
     "wallet.vtxosEmpty": "Aún no hay VTXOs. Recibe algo de dinero primero.",
     "wallet.expiresIn": "caduca en {0}",
     "wallet.onboardCta": "Llevar {0} fuera de la cadena",
+    "wallet.onboardEmptyCta": "Llevar monedas fuera de la cadena",
+    "wallet.onboardNeedsCoins":
+        "Todavía no hay nada que embarcar. Hacen falta monedas confirmadas en la cadena en tu dirección de embarque: el embarque las cambia por VTXOs en el siguiente lote.",
     "wallet.onboarding": "Uniéndose al siguiente lote…",
     "wallet.refresh": "Actualizar",
 
@@ -295,7 +298,7 @@ export const ES: Messages = {
     "tour.receive.cta": "Ir a Recibir",
     "tour.onboard.title": "Sal de la cadena",
     "tour.onboard.body": "Las monedas en cadena de tu dirección de embarque todavía no se pueden gastar en Ark. El embarque las cambia por VTXO uniéndose a la próxima ronda de lote: aproximadamente un minuto. Es el único paso de toda la app que toca la cadena de bloques, y su coste se reparte entre todos los de la ronda.",
-    "tour.onboard.cta": "Ir a Recibir",
+    "tour.onboard.cta": "Ir a Embarque",
     "tour.send.title": "Envía un pago",
     "tour.send.body": "Pagar destruye uno de tus VTXO y crea dos: el de quien recibe y tu cambio. Tú firmas, el servidor cofirma, y esa es toda la transacción: ni bloque que esperar ni comisión que pagar. Mira la línea de tiempo de al lado mientras lo haces.",
     "tour.send.cta": "Ir a Enviar",
@@ -445,6 +448,11 @@ export const ES: Messages = {
     "profile.removeNamed": "Eliminar a {0}",
 
     "tour.dock": "Mostrar la guía junto a la cartera",
+    "tour.undock": "Devolver la guía a su pestaña",
+    "footer.source": "Código en GitHub",
+    "footer.inspiredBy": "Inspirado por",
+    "footer.madeWith": "Hecho con",
+    "footer.forCommunity": "para la comunidad Bitcoin",
 
     "send.modeOffchain": "Pagar en Ark",
     "send.modeWithdraw": "Retirar en cadena",

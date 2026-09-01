@@ -47,6 +47,9 @@ export const EN = {
     "wallet.vtxosEmpty": "No VTXOs yet. Receive some money first.",
     "wallet.expiresIn": "expires in {0}",
     "wallet.onboardCta": "Bring {0} off-chain",
+    "wallet.onboardEmptyCta": "Bring coins off-chain",
+    "wallet.onboardNeedsCoins":
+        "Nothing to onboard yet. This needs confirmed on-chain coins at your boarding address — onboarding swaps them for VTXOs in the next batch round.",
     "wallet.onboarding": "Joining the next batch…",
     "wallet.refresh": "Refresh",
 
@@ -296,7 +299,7 @@ export const EN = {
     "tour.receive.cta": "Go to Receive",
     "tour.onboard.title": "Come off-chain",
     "tour.onboard.body": "On-chain coins on your boarding address are not spendable in Ark yet. Onboarding swaps them for VTXOs by joining the next batch round — about a minute. It is the only step in this whole app that touches the blockchain, and its cost is split across everyone in the round.",
-    "tour.onboard.cta": "Go to Receive",
+    "tour.onboard.cta": "Go to Boarding",
     "tour.send.title": "Send a payment",
     "tour.send.body": "Paying destroys one of your VTXOs and creates two: the recipient's and your change. You sign, the server co-signs, and that is the whole transaction — no block to wait for and no fee to pay. Watch the timeline beside this while you do it.",
     "tour.send.cta": "Go to Send",
@@ -446,6 +449,11 @@ export const EN = {
     "profile.removeNamed": "Delete {0}",
 
     "tour.dock": "Show the guide beside the wallet",
+    "tour.undock": "Put the guide back in its tab",
+    "footer.source": "Source on GitHub",
+    "footer.inspiredBy": "Inspired by",
+    "footer.madeWith": "Built with",
+    "footer.forCommunity": "for the Bitcoin community",
 
     "send.modeOffchain": "Pay in Ark",
     "send.modeWithdraw": "Withdraw on-chain",

@@ -61,24 +61,12 @@ import { firstValueFrom } from "rxjs";
             </div>
 
             <div class="controls">
+                <!-- Docking is toggled from the guide panel itself -- the
+                     control belongs on the thing it moves, not in a header bar
+                     shared with everything else. See the app-tour component. -->
+
                 <!-- Free play or a guided run. The quest never blocks anything;
                      it only says what to do next and notices when you do. -->
-                <!-- Docking is a desktop affordance and a single-wallet one;
-                     with two wallets the third column has nowhere to go. -->
-                @if (!profiles.split() && !quest.enabled()) {
-                    <button
-                        matIconButton
-                        class="dock"
-                        [class.on]="tourDocked()"
-                        [matTooltip]="i18n.t('tour.dock')"
-                        [attr.aria-label]="i18n.t('tour.dock')"
-                        [attr.aria-pressed]="tourDocked()"
-                        (click)="profiles.setTourDocked(!tourDocked())"
-                    >
-                        <mat-icon>vertical_split</mat-icon>
-                    </button>
-                }
-
                 <!-- Entering and leaving are doors, not a toggle: each is
                      confirmed, and the label always names where the button
                      takes you rather than where you are. -->
@@ -266,6 +254,35 @@ import { firstValueFrom } from "rxjs";
         </main>
 
         <!--
+            Credit where it is due, and a way out to the source. A teaching app
+            that shows its work should be readable in full, not just watched.
+        -->
+        <footer class="colophon">
+            <p class="links">
+                <a
+                    href="https://github.com/satcat21/firstsats"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >{{ i18n.t("footer.source") }}</a
+                >
+                <span>
+                    {{ i18n.t("footer.inspiredBy") }}
+                    <a
+                        href="https://github.com/arkade-os"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >arkade-os</a
+                    >
+                </span>
+            </p>
+            <p class="made">
+                {{ i18n.t("footer.madeWith") }}
+                <span class="heart" aria-hidden="true">♥</span>
+                {{ i18n.t("footer.forCommunity") }}
+            </p>
+        </footer>
+
+        <!--
             One lane per wallet, laid out on the same grid as the panes above,
             so a notification sits under the column it came from. Fixed to the
             viewport bottom rather than the page, so it stays put while
@@ -278,11 +295,57 @@ import { firstValueFrom } from "rxjs";
         </div>
     `,
     styles: `
+        /*
+         * Sits below the toast lanes in source order but above them visually,
+         * because the lanes are fixed to the viewport: the footer scrolls, the
+         * toasts do not, and neither needs to know about the other.
+         *
+         * No bottom margin of its own -- the host's padding is the whole gap to
+         * the page edge, so there is one number to change rather than two.
+         */
+        .colophon {
+            margin: 28px 0 0;
+            text-align: center;
+            font-size: 12.5px;
+            line-height: 1.7;
+        }
+
+        .colophon p {
+            margin: 2px 0;
+        }
+
+        /*
+         * Flex with a gap rather than punctuation between the two: the closing
+         * tag of a link sits on its own line here, so the newline that would
+         * have been the separating space collapses away and the items run
+         * together. The gap does not depend on source formatting.
+         */
+        .colophon .links {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+        }
+
+        .colophon a {
+            color: var(--accent);
+        }
+
+        .heart {
+            color: var(--danger);
+        }
+
         :host {
             display: block;
             max-width: 860px;
             margin: 0 auto;
-            padding: 28px 20px 64px;
+            /*
+             * The small bottom padding puts the colophon near the page edge. It
+             * used to be 64px, to keep the last card clear of the toast lanes
+             * fixed at the viewport bottom -- now the footer is what sits there,
+             * and a toast briefly covering a credit line costs nothing.
+             */
+            padding: 28px 20px 16px;
             transition: max-width 0.2s ease;
         }
 
@@ -654,11 +717,6 @@ import { firstValueFrom } from "rxjs";
             max-height: calc(100vh - 40px);
             overflow-y: auto;
             min-width: 0;
-        }
-
-        .dock.on {
-            color: var(--accent);
-            background: var(--accent-soft);
         }
 
         /* Below this the tour cannot be a column, so it goes back to its tab. */

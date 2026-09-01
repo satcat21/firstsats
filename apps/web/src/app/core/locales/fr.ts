@@ -45,6 +45,9 @@ export const FR: Messages = {
     "wallet.vtxosEmpty": "Pas encore de VTXO. Recevez d'abord un peu d'argent.",
     "wallet.expiresIn": "expire dans {0}",
     "wallet.onboardCta": "Faire passer {0} hors chaîne",
+    "wallet.onboardEmptyCta": "Faire passer des pièces hors chaîne",
+    "wallet.onboardNeedsCoins":
+        "Rien à embarquer pour l'instant. Il faut des pièces confirmées sur la chaîne à votre adresse d'embarquement : l'embarquement les échange contre des VTXO au prochain lot.",
     "wallet.onboarding": "Attente du prochain lot…",
     "wallet.refresh": "Actualiser",
 
@@ -295,7 +298,7 @@ export const FR: Messages = {
     "tour.receive.cta": "Aller à Recevoir",
     "tour.onboard.title": "Passez hors chaîne",
     "tour.onboard.body": "Les pièces on-chain sur votre adresse d'embarquement ne sont pas encore dépensables dans Ark. L'embarquement les échange contre des VTXO en rejoignant le prochain tour de lot — environ une minute. C'est la seule étape de toute l'application qui touche la blockchain, et son coût est partagé entre tous les participants du tour.",
-    "tour.onboard.cta": "Aller à Recevoir",
+    "tour.onboard.cta": "Aller à Embarquement",
     "tour.send.title": "Envoyez un paiement",
     "tour.send.body": "Payer détruit l'un de vos VTXO et en crée deux : celui du destinataire et votre monnaie. Vous signez, le serveur co-signe, et c'est toute la transaction — aucun bloc à attendre, aucun frais à payer. Regardez la chronologie à côté pendant l'opération.",
     "tour.send.cta": "Aller à Envoyer",
@@ -445,6 +448,11 @@ export const FR: Messages = {
     "profile.removeNamed": "Supprimer {0}",
 
     "tour.dock": "Afficher le guide à côté du portefeuille",
+    "tour.undock": "Remettre le guide dans son onglet",
+    "footer.source": "Code source sur GitHub",
+    "footer.inspiredBy": "Inspiré par",
+    "footer.madeWith": "Fait avec",
+    "footer.forCommunity": "pour la communauté Bitcoin",
 
     "send.modeOffchain": "Payer dans Ark",
     "send.modeWithdraw": "Retirer on-chain",
