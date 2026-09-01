@@ -11,6 +11,11 @@ someone new to Bitcoin who wants the concepts to land, and a developer who wants
 to see what using [`@arkade-os/sdk`](https://github.com/arkade-os/ts-sdk)
 actually looks like.
 
+### ▶ [Try it live](https://satcat21.github.io/firstsats/)
+
+The web app, in your browser, on public signet — no install, no sign-up, and no
+coins of value.
+
 ```
 $ firstsats send tark1qw8f... 5000
 
