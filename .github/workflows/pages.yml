@@ -1,0 +1,78 @@
+# Publishes the web app to GitHub Pages.
+#
+# The app is browser-only -- no backend, no server-side rendering, no router --
+# so the built bundle is a plain folder of static files. Two details make the
+# difference between that folder working and 404ing:
+#
+#   * `--base-href`. A project page is served from /<repo>/, not /, and Angular
+#     bakes that prefix into index.html at build time. It is taken from the
+#     repository name rather than hard-coded, so a fork publishes correctly
+#     without editing this file.
+#   * `.nojekyll`. Pages runs Jekyll by default, which skips files beginning
+#     with an underscore. Angular's output does not use those names today, but
+#     the file costs nothing and removes the whole class of problem.
+#
+# Deploys with the Pages artifact actions rather than pushing a gh-pages branch,
+# so the repository keeps one branch and the deployment history lives in the
+# Actions tab.
+
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one half-done: an interrupted
+# publish leaves the live site in whatever state it got to.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm install -g npm@12.0.2
+
+      - name: Install web dependencies
+        run: npm --prefix apps/web ci --no-audit --no-fund
+
+      - name: Build
+        run: |
+          npm --prefix apps/web run build -- \
+            --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Keep Jekyll out of it
+        run: touch apps/web/dist/web/browser/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist/web/browser
+
+  deploy:
+    name: deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,9 @@
+# Normalise line endings in the repository regardless of contributor platform.
+# Without this, a file rewritten by npm on Windows lands in git with CRLF and
+# shows up as a whole-file diff for everyone else.
+* text=auto eol=lf
+
+# Binary
+*.ico binary
+*.png binary
+*.jpg binary

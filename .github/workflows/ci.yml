@@ -1,0 +1,119 @@
+# The same four gates as .gitlab-ci.yml: install, lint, audit, build.
+# GitHub Actions can express everything the GitLab pipeline does; the two are
+# kept deliberately in step so a green build means the same thing on either host.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: lint / typecheck / test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor declared in package.json engines, and current LTS.
+        node: ["22.22.2", "24.20.0"]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # Fails if package.json and package-lock.json disagree, which is the
+      # check that matters -- not "did some install succeed".
+      # The repo pins npm 12 via `packageManager`.
+      - name: Pin npm
+        run: npm install -g npm@12.0.2
+
+      - name: Install (lockfile-exact)
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      # Production dependencies are what ship to a user: a high-severity
+      # advisory here fails the build.
+      - name: Audit production dependencies
+        run: npm audit --audit-level=high --omit=dev
+
+      # Dev-only advisories are surfaced but not fatal -- they never reach a
+      # user, and blocking a release on one is noise.
+      - name: Audit dev dependencies (informational)
+        run: npm audit --audit-level=moderate || true
+
+  # The Angular front end is a separate npm project that compiles the shared
+  # core from `src/` into its browser bundle, so a core change that breaks the
+  # web build is caught here rather than at runtime.
+  web:
+    name: web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm install -g npm@12.0.2
+
+      - name: Install web dependencies
+        run: npm --prefix apps/web ci --no-audit --no-fund
+
+      - name: Build
+        run: npm --prefix apps/web run build
+
+      - name: Audit web production dependencies
+        run: npm --prefix apps/web audit --audit-level=high --omit=dev
+
+  # Opt-in integration run against the live public Arkade signet deployment.
+  # Scheduled rather than per-push: an upstream outage is not our regression.
+  e2e:
+    name: end-to-end (live signet)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.20.0"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:e2e
+        env:
+          FIRSTSATS_E2E: "1"

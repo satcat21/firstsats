@@ -1,0 +1,82 @@
+// Angular Material, wired to this app's palette.
+//
+// Two token systems would be one too many. `mat.theme()` runs for its
+// typography, density and shape output, and then every colour it emitted is
+// re-pointed at the semantic tokens in `styles.scss`. Material components
+// inherit those in both themes, and there is one place to change a colour.
+
+@use '@angular/material' as mat;
+@use './theme-colors' as brand;
+
+html {
+    color-scheme: light dark;
+
+    @include mat.theme(
+        (
+            color: (
+                primary: brand.$primary-palette,
+                tertiary: brand.$tertiary-palette,
+            ),
+            typography: (
+                plain-family: (ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif),
+                brand-family: (ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif),
+            ),
+            // Slightly tighter than Material's default. This is an information
+            // dense reference app, not a phone screen.
+            density: -1,
+        )
+    );
+}
+
+// The language picker sits beside a 32px slide toggle in the header, and a
+// default form field is 56px. Density is the supported way down; padding alone
+// cannot shrink it past its step.
+.lang {
+    @include mat.form-field-density(-5);
+}
+
+// The bridge. Declared after `mat.theme()` so it wins; both themes are covered
+// because the right-hand sides are themselves theme-aware.
+
+:root {
+    --mat-sys-background: var(--bg);
+    --mat-sys-on-background: var(--fg);
+
+    --mat-sys-surface: var(--surface-raised);
+    --mat-sys-on-surface: var(--fg);
+    --mat-sys-on-surface-variant: var(--fg-muted);
+    --mat-sys-surface-variant: var(--surface);
+    --mat-sys-surface-container-lowest: var(--bg);
+    --mat-sys-surface-container-low: var(--surface);
+    --mat-sys-surface-container: var(--surface);
+    --mat-sys-surface-container-high: var(--surface-raised);
+    --mat-sys-surface-container-highest: var(--surface-raised);
+
+    --mat-sys-primary: var(--accent);
+    --mat-sys-on-primary: var(--accent-fg);
+    --mat-sys-primary-container: var(--accent-soft);
+    --mat-sys-on-primary-container: var(--fg);
+    --mat-sys-secondary-container: var(--accent-soft);
+    --mat-sys-on-secondary-container: var(--fg);
+    --mat-sys-tertiary-container: var(--success-soft);
+
+    --mat-sys-error: var(--danger);
+    --mat-sys-on-error: var(--accent-fg);
+    --mat-sys-error-container: var(--danger-soft);
+    --mat-sys-on-error-container: var(--danger-on-soft);
+
+    --mat-sys-outline: var(--border-strong);
+    --mat-sys-outline-variant: var(--border);
+
+    // Material's default elevations are dark-grey drop shadows that read as
+    // smudges on a dark ground. The app already has one tuned shadow.
+    --mat-sys-level0: none;
+    --mat-sys-level1: var(--shadow);
+    --mat-sys-level2: var(--shadow);
+    --mat-sys-level3: var(--shadow);
+
+    --mat-sys-corner-extra-small: 6px;
+    --mat-sys-corner-small: var(--radius-sm);
+    --mat-sys-corner-medium: var(--radius-sm);
+    --mat-sys-corner-large: var(--radius);
+}

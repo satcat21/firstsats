@@ -1,0 +1,133 @@
+# GitLab CI for arkade-firstsats.
+#
+# Four gates, each answering one question:
+#   install  -- does a clean, lockfile-exact install work?
+#   lint     -- is the code formatted and lint-clean?
+#   audit    -- does any dependency have a known advisory?
+#   build    -- does it typecheck and do the tests pass?
+#
+# `node_modules/` is produced once in `install` and passed forward as an
+# artifact, so the later jobs never re-resolve the dependency tree. That is
+# deliberate: it means lint, audit and build all inspect the *same* bytes.
+
+default:
+  image: node:22-bookworm-slim
+  interruptible: true
+  # The repo pins npm 12 via `packageManager`; the node:22 image ships an older
+  # one, so every job installs it before doing anything else.
+  before_script:
+    - npm install -g npm@12.0.2
+
+variables:
+  # Keep npm's cache inside the project so GitLab can cache it.
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  NODE_ENV: "development"
+
+stages:
+  - install
+  - verify
+  - publish
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+# --------------------------------------------------------------------------
+
+install:
+  stage: install
+  script:
+    # `npm ci` fails if package.json and package-lock.json disagree, which is
+    # the check we actually want -- not "did some install succeed".
+    - npm ci --no-audit --no-fund
+    - node --version
+    - npm --version
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - node_modules/
+
+lint:
+  stage: verify
+  needs: ["install"]
+  script:
+    - npm run lint
+
+audit:
+  stage: verify
+  needs: ["install"]
+  script:
+    # Fail the pipeline on high or critical advisories in the production tree.
+    - npm audit --audit-level=high --omit=dev
+    # Dev dependencies are reported but do not fail the build: they never ship
+    # to a user, and a dev-only advisory should not block a release.
+    - npm audit --audit-level=moderate || echo "Dev-dependency advisories above are informational."
+  allow_failure: false
+
+build:
+  stage: verify
+  needs: ["install"]
+  script:
+    - npm run typecheck
+    - npm run test:ci
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      junit: reports/junit.xml
+    paths:
+      - reports/
+
+# The Angular front end is a separate npm project under apps/web. It compiles
+# the shared core from `src/` into the browser bundle, so a change to the core
+# that breaks the web build is caught here rather than at runtime.
+web:
+  stage: verify
+  needs: ["install"]
+  script:
+    - npm --prefix apps/web ci --no-audit --no-fund
+    - npm --prefix apps/web run build
+    - npm --prefix apps/web exec -- npm audit --audit-level=high --omit=dev
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - apps/web/dist/
+
+# The end-to-end suite talks to a third-party signet deployment. It runs on a
+# schedule rather than on every push, so an outage upstream never turns a
+# feature branch red.
+e2e:
+  stage: verify
+  needs: ["install"]
+  variables:
+    FIRSTSATS_E2E: "1"
+  script:
+    - npm run test:e2e
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+      allow_failure: true
+
+# --------------------------------------------------------------------------
+# Publish to the project's private GitLab npm registry.
+#
+# Manual and tag-only: a version reaches the registry because someone decided
+# it should, not because a branch happened to build.
+
+publish:
+  stage: publish
+  needs: ["lint", "audit", "build", "web"]
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+  script:
+    - |
+      cat > .npmrc <<NPMRC
+      @${CI_PROJECT_ROOT_NAMESPACE}:registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/
+      ${CI_API_V4_URL#https:}/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}
+      NPMRC
+    - npm publish

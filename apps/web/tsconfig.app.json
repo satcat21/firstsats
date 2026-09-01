@@ -1,0 +1,19 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [],
+    /* The CLI and the web app share the same domain logic. `@firstsats/core`
+       is the browser-safe barrel -- see src/browser.ts at the repo root. */
+    "paths": {
+      "@firstsats/core": ["../../src/browser.ts"]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts"
+  ]
+}

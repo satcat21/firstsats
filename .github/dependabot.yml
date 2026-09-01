@@ -1,0 +1,40 @@
+# Dependabot answers the question `npm audit` in CI cannot: it watches the
+# lockfile continuously and opens a PR when a fix lands upstream, rather than
+# only failing at the moment someone happens to push.
+#
+# Enable "Dependabot alerts" and "Dependabot security updates" in the
+# repository's Settings > Code security for the security half of this to work.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for routine dev-tooling bumps instead of five.
+      dev-dependencies:
+        dependency-type: development
+        update-types: ["minor", "patch"]
+    labels: ["dependencies"]
+
+  # The Angular front end is a separate npm project with its own lockfile.
+  - package-ecosystem: npm
+    directory: "/apps/web"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      angular:
+        patterns: ["@angular/*"]
+      dev-dependencies:
+        dependency-type: development
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "web"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels: ["dependencies", "ci"]

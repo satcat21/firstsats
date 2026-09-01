@@ -1,0 +1,13 @@
+{
+    // Use the TypeScript that the build uses, not whichever version the editor
+    // ships with. A mismatch here shows up as errors that no compiler agrees
+    // with -- typically stale or half-resolved types in the web app, whose
+    // `Messages` union is rebuilt from the locale catalogue on every change.
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+
+    // The web app is a referenced project: files under apps/web resolve
+    // `@firstsats/core` through apps/web/tsconfig.app.json, never through the
+    // root config, which does not include them at all.
+    "typescript.preferences.includePackageJsonAutoImports": "on"
+}

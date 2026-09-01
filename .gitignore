@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+
+# Wallet keystores written by `firstsats init`. These hold plaintext mnemonics.
+.firstsats/
+*.wallet.json
+
+# Angular
+apps/web/dist/
+apps/web/.angular/

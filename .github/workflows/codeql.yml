@@ -1,0 +1,33 @@
+# GitHub's own static analysis. This complements `npm audit` rather than
+# replacing it: audit inspects *dependencies* for known advisories, CodeQL
+# inspects *our own code* for injection, path traversal, unsafe deserialisation
+# and similar. Free for public repositories.
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Re-scan weekly so newly published queries are applied to old code.
+    - cron: "27 4 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - uses: github/codeql-action/analyze@v4

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="firstsats">
+  <title>firstsats</title>
+  <rect width="200" height="200" fill="#351791"/>
+  <!-- One closed path per letter: adjacent rectangles sharing an edge leave a
+       hairline antialiasing seam, so the glyphs are traced as single outlines. -->
+  <path fill="#F6F6F6" d="M60 50h20l10 10v10H70v20h20v20H70v40H50v-40H30V90h20V60z"/>
+  <path fill="#F6F6F6" d="M120 50h40l10 10v10h-40v20h40v60h-60v-20h40v-20h-40V60z"/>
+</svg>
