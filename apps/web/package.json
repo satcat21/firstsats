@@ -21,7 +21,7 @@
     "@angular/material": "^22.1.4",
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
-    "@arkade-os/sdk": "^0.4.66",
+    "@arkade-os/sdk": "^0.4.67",
     "@scure/bip39": "^2.4.0",
     "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",
@@ -33,7 +33,7 @@
     "@angular/compiler-cli": "^22.1.0",
     "@types/qrcode": "^1.5.6",
     "prettier": "^3.8.1",
-    "typescript": "~7.0.2"
+    "typescript": "~6.0.2"
   },
   "allowScripts": {
     "esbuild": false,
