@@ -459,6 +459,12 @@ export class ArkadeService {
      * which is the opposite of what this app is for.
      */
     private announce(funds: IncomingFundsLike): void {
+        // While `watchForFunds` is running, the `receive.wait` step is already on
+        // screen and updates itself the moment money lands -- saying the same
+        // thing again puts two toasts up for one payment. This subscription is
+        // here for the other case: money that arrives when nobody is watching.
+        if (this.watching()) return;
+
         const total =
             funds.type === "vtxo"
                 ? funds.newVtxos.reduce((sum, v) => sum + v.value, 0)
