@@ -43,7 +43,7 @@ code does.
 
 ## Quick start
 
-Requires Node.js 22.22.2 or newer.
+Requires Node.js 24.20.0 or newer — the active LTS line.
 
 ```bash
 npm install
@@ -262,7 +262,7 @@ Both pipelines run the same four gates — install, lint, audit, build:
 - [`.gitlab-ci.yml`](.gitlab-ci.yml) — GitLab, including a manual tag-gated
   publish to a private GitLab npm registry.
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — GitHub Actions, on a
-  Node 22.22.2 / 24.20.0 matrix, plus a job that builds the web app.
+  Node 24.20.0 / 26 matrix, plus a job that builds the web app.
 - [`.github/workflows/codeql.yml`](.github/workflows/codeql.yml) — CodeQL static
   analysis of this repository's own code.
 - [`.github/dependabot.yml`](.github/dependabot.yml) — continuous dependency

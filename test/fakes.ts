@@ -59,6 +59,7 @@ export function balance(overrides: Partial<WalletBalance> = {}): WalletBalance {
         intentLocked: 0,
         recoverable: 0,
         pendingRecovery: 0,
+        unrolled: 0,
         total: 0,
         assets: [],
         availableAssets: [],

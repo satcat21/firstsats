@@ -11,9 +11,9 @@
 # deliberate: it means lint, audit and build all inspect the *same* bytes.
 
 default:
-  image: node:22-bookworm-slim
+  image: node:24-bookworm-slim
   interruptible: true
-  # The repo pins npm 12 via `packageManager`; the node:22 image ships an older
+  # The repo pins npm 12 via `packageManager`; the node:24 image ships an older
   # one, so every job installs it before doing anything else.
   before_script:
     - npm install -g npm@12.0.2

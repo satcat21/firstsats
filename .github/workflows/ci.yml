@@ -24,8 +24,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The floor declared in package.json engines, and current LTS.
-        node: ["22.22.2", "24.20.0"]
+        # The floor declared in package.json engines -- pinned exactly, because
+        # it is a claim about the oldest Node this runs on -- and the newest
+        # release that range still permits, floating so it tracks upstream.
+        node: ["24.20.0", "26"]
     steps:
       - uses: actions/checkout@v7
 
