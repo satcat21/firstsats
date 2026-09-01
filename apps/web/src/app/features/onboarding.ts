@@ -1,6 +1,7 @@
 import {
     ChangeDetectionStrategy,
     Component,
+    computed,
     inject,
     input,
     signal,
@@ -252,6 +253,12 @@ export class Onboarding {
 
     readonly i18n = inject(I18nService);
     private readonly profiles = inject(ProfileService);
+
+    /** This pane's wallet colour, so the seed dialog is visibly its dialog. */
+    private readonly accent = computed(
+        () =>
+            this.profiles.profiles().find((p) => p.id === this.profileId())?.accent
+    );
     private readonly dialog = inject(MatDialog);
 
     /** Surfaced in the template; creation is local, so failures are rare. */
@@ -295,7 +302,12 @@ export class Onboarding {
      */
     async create(): Promise<void> {
         const chosen = await firstValueFrom(
-            this.dialog.open(SeedDialog, { width: "min(560px, calc(100vw - 32px))" }).afterClosed()
+            this.dialog
+                .open(SeedDialog, {
+                    width: "min(560px, calc(100vw - 32px))",
+                    data: { accent: this.accent() },
+                })
+                .afterClosed()
         );
         // Dismissed. Not an error, and not a wallet.
         if (!chosen) return;

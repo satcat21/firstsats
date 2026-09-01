@@ -208,6 +208,10 @@ export class ChainService {
     private readonly askedAt = new Map<string, number>();
 
     private timer: ReturnType<typeof setInterval> | undefined;
+    /** The block feed, when the network has one and it opened. */
+    private socket: WebSocket | null = null;
+    /** Whether a watch is running, independent of which transport is up. */
+    private watching = false;
     private known = new Set<string>();
     /**
      * Whether the first scan has happened.
@@ -300,6 +304,21 @@ export class ChainService {
             // coins are now boarding funds it can onboard.
             if (found.some((tx) => tx.confirmed)) await this.arkade.refresh();
 
+            /*
+             * Hand the wait over to the socket, and take it back afterwards.
+             *
+             * While a payment sits unconfirmed there is exactly one event worth
+             * waiting for and it arrives on the socket, so the timer is dead
+             * weight -- about sixty requests per block on signet. With nothing
+             * unconfirmed the question changes to "has anything new appeared?",
+             * which no block event answers, so the timer comes back.
+             */
+            if (this.watching) {
+                const awaitingBlock = found.some((tx) => !tx.confirmed);
+                if (awaitingBlock && this.socketOpen()) this.idle();
+                else this.poll();
+            }
+
             if (found.length === 0) {
                 await this.findMisdirected(address);
             } else {
@@ -366,19 +385,115 @@ export class ChainService {
         this.seenInMempool.set(null);
     }
 
-    /** Poll until stopped. Idempotent — starting twice keeps one timer. */
+    /**
+     * Watch until stopped. Idempotent — starting twice keeps one watch.
+     *
+     * Two transports, because the two questions have very different shapes.
+     * "Has a payment appeared?" can only be answered by asking, so it is polled.
+     * "Has it confirmed?" is answered by a block, roughly every ten minutes on
+     * signet — polling that costs about sixty requests per useful answer, so it
+     * is handed to a socket that says when a block lands.
+     *
+     * The socket is an optimisation, never a requirement: if it will not open,
+     * or drops, the poll simply keeps running and everything still works.
+     */
     start(): void {
-        if (this.timer) return;
+        if (this.watching) return;
+        this.watching = true;
         this.status.set("watching");
         this.seenInMempool.set(null);
         void this.check();
-        this.timer = setInterval(() => void this.check(), POLL_MS);
+        this.poll();
+        this.openSocket();
     }
 
     stop(): void {
+        this.watching = false;
+        this.idle();
+        this.closeSocket();
+        if (this.status() === "watching") this.status.set("idle");
+    }
+
+    /** Start the interval, unless one is already running. */
+    private poll(): void {
+        if (this.timer) return;
+        this.timer = setInterval(() => void this.check(), POLL_MS);
+    }
+
+    /** Stop the interval, leaving any socket alone. */
+    private idle(): void {
         if (this.timer) clearInterval(this.timer);
         this.timer = undefined;
-        if (this.status() === "watching") this.status.set("idle");
+    }
+
+    /**
+     * Where this network's block feed lives, or null if it has none.
+     *
+     * The signet and mutinynet deployments are mempool.space instances, which
+     * serve a socket beside the REST API. A bare Esplora — the local regtest
+     * stack, for one — has no equivalent, and there is nothing to detect ahead
+     * of time: the URL is built, the socket either opens or it does not, and
+     * failing to open is a supported outcome rather than an error.
+     */
+    private socketUrl(): string | null {
+        const base = this.arkade.network.esploraUrl.replace(/\/+$/, "");
+        if (!base.endsWith("/api")) return null;
+        try {
+            const url = new URL(`${base}/v1/ws`);
+            url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+            return url.toString();
+        } catch {
+            return null;
+        }
+    }
+
+    private openSocket(): void {
+        if (this.socket) return;
+        const url = this.socketUrl();
+        if (!url) return;
+
+        let socket: WebSocket;
+        try {
+            socket = new WebSocket(url);
+        } catch {
+            // Blocked by policy, or not a socket URL after all. Keep polling.
+            return;
+        }
+        this.socket = socket;
+
+        socket.addEventListener("open", () => {
+            // Blocks only. Address tracking exists but follows a single
+            // address, and rotation means several are usually in play at once.
+            socket.send(JSON.stringify({ action: "want", data: ["blocks"] }));
+        });
+
+        socket.addEventListener("message", (event) => {
+            if (typeof event.data !== "string") return;
+            // Cheaper than parsing every heartbeat, and the payload shape is
+            // not ours to depend on: any message mentioning a block is reason
+            // enough to go and look.
+            if (!event.data.includes("block")) return;
+            void this.check();
+        });
+
+        const fallBack = () => {
+            if (this.socket !== socket) return;
+            this.socket = null;
+            // Whatever the socket was covering, the timer covers again.
+            if (this.watching) this.poll();
+        };
+        socket.addEventListener("close", fallBack);
+        socket.addEventListener("error", fallBack);
+    }
+
+    private socketOpen(): boolean {
+        return this.socket?.readyState === WebSocket.OPEN;
+    }
+
+    private closeSocket(): void {
+        const socket = this.socket;
+        this.socket = null;
+        socket?.close();
     }
 
     /** Forget what has been seen, so a new faucet attempt announces itself. */

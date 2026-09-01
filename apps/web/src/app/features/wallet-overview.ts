@@ -724,7 +724,10 @@ export class WalletOverview {
     showPhrase(): void {
         const mnemonic = this.arkade.stored()?.mnemonic;
         if (!mnemonic) return;
-        this.dialog.open(PhraseDialog, { width: "min(520px, calc(100vw - 32px))", data: { mnemonic } });
+        this.dialog.open(PhraseDialog, {
+            width: "min(520px, calc(100vw - 32px))",
+            data: { mnemonic, accent: this.arkade.stored()?.accent },
+        });
     }
 
     /** Join the next round, turning preconfirmed coins into settled ones. */

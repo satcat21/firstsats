@@ -679,6 +679,7 @@ export class ProfilePane {
                 .open(ConfirmDialog, {
                     width: "min(440px, calc(100vw - 32px))",
                     data: {
+                        accent: profile.accent,
                         title: this.i18n.t("profile.removeTitle", profile.name),
                         message: this.i18n.t("profile.removeConfirm", profile.name),
                         confirmLabel: this.i18n.t("profile.removeNamed", profile.name),

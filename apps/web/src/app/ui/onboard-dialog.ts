@@ -36,9 +36,12 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import type { BoardingUtxoView } from "@firstsats/core";
 import { I18nService } from "../core/i18n.service";
+import type { Accent } from "../core/profile.service";
 import { RoundClock, countdownText } from "../core/round-clock";
 
 export interface OnboardData {
+    /** The wallet whose coins these are, so the dialog wears its colour. */
+    readonly accent?: Accent;
     /** Every output on a boarding address, confirmed or not. */
     readonly utxos: readonly BoardingUtxoView[];
     /** Block-explorer link for a transaction, when the network has one. */
@@ -55,6 +58,11 @@ export interface OnboardData {
 @Component({
     selector: "app-onboard-dialog",
     changeDetection: ChangeDetectionStrategy.OnPush,
+    host: {
+        "[class.user-accent]": "data.accent !== undefined",
+        "[style.--tint]": "data.accent?.tint ?? null",
+        "[style.--ink]": "data.accent?.ink ?? null",
+    },
     imports: [
         MatButtonModule,
         MatCheckboxModule,

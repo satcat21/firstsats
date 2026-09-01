@@ -15,7 +15,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
-import { MatDialogModule, MatDialogRef } from "@angular/material/dialog";
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from "@angular/material/dialog";
 import { MatIconModule } from "@angular/material/icon";
 import {
     createMnemonic,
@@ -23,12 +23,23 @@ import {
     normalizeMnemonic,
 } from "../core/browser-keystore";
 import { I18nService } from "../core/i18n.service";
+import type { Accent } from "../core/profile.service";
 
 const WORD_COUNT = 12;
+
+export interface SeedData {
+    /** The wallet being created, so the dialog wears its colour. */
+    readonly accent?: Accent;
+}
 
 @Component({
     selector: "app-seed-dialog",
     changeDetection: ChangeDetectionStrategy.OnPush,
+    host: {
+        "[class.user-accent]": "data?.accent !== undefined",
+        "[style.--tint]": "data?.accent?.tint ?? null",
+        "[style.--ink]": "data?.accent?.ink ?? null",
+    },
     imports: [MatButtonModule, MatDialogModule, MatIconModule],
     template: `
         <h2 mat-dialog-title>
@@ -193,6 +204,11 @@ const WORD_COUNT = 12;
     `,
 })
 export class SeedDialog {
+    /**
+     * Null when the dialog is opened without data, which Material passes
+     * through as-is -- the host bindings above cope with that.
+     */
+    readonly data = inject<SeedData | null>(MAT_DIALOG_DATA, { optional: true });
     readonly i18n = inject(I18nService);
     private readonly ref =
         inject<MatDialogRef<SeedDialog, string | null>>(MatDialogRef);

@@ -6,8 +6,17 @@ import {
     MatDialogRef,
 } from "@angular/material/dialog";
 import { MatIconModule } from "@angular/material/icon";
+import type { Accent } from "../core/profile.service";
 
 export interface ConfirmData {
+    /**
+     * The wallet this dialog belongs to, when it belongs to one.
+     *
+     * Omitted by the app-level prompts -- entering quest mode is not any one
+     * user's act, and tinting it with whichever wallet happens to be first
+     * would be arbitrary.
+     */
+    readonly accent?: Accent;
     readonly title: string;
     readonly message: string;
     readonly confirmLabel: string;
@@ -38,6 +47,11 @@ export interface ConfirmData {
 @Component({
     selector: "app-confirm-dialog",
     changeDetection: ChangeDetectionStrategy.OnPush,
+    host: {
+        "[class.user-accent]": "data.accent !== undefined",
+        "[style.--tint]": "data.accent?.tint ?? null",
+        "[style.--ink]": "data.accent?.ink ?? null",
+    },
     imports: [MatButtonModule, MatDialogModule, MatIconModule],
     template: `
         <h2 mat-dialog-title [class.destructive]="data.destructive">

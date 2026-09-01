@@ -312,8 +312,16 @@ import { openOnboardDialog } from "../ui/onboard-dialog";
                 <ng-template #txRow let-tx>
                     <div class="row">
                         <span class="amount">
-                            <mat-icon aria-hidden="true" [class.ok]="tx.confirmed">
-                                {{ tx.confirmed ? "check_circle" : "pending" }}
+                            <!-- Spinning while unconfirmed: a static glyph beside
+                                 "in mempool" looks like a state nobody is working
+                                 on, when in fact the panel is polling and a block
+                                 is being waited for. -->
+                            <mat-icon
+                                aria-hidden="true"
+                                [class.ok]="tx.confirmed"
+                                [class.spin]="!tx.confirmed"
+                            >
+                                {{ tx.confirmed ? "check_circle" : "progress_activity" }}
                             </mat-icon>
                             {{ i18n.sats(tx.value) }}
                         </span>
@@ -650,6 +658,7 @@ export class BoardingWatch implements OnDestroy {
      */
     onboard(): void {
         openOnboardDialog(this.dialog, {
+            accent: this.arkade.stored()?.accent,
             utxos: this.arkade.boarding(),
             explorer: (txid) => this.explorer(txid),
             run: (only) => this.arkade.onboard(only),
@@ -668,9 +677,31 @@ export class BoardingWatch implements OnDestroy {
 
     constructor() {
         // One look on arrival, so the panel opens showing the truth rather than
-        // "nothing yet" until somebody presses Watch. The poll itself only runs
-        // while the Receive card's watch is on.
+        // "nothing yet" until somebody presses Watch.
         void this.chain.check();
+
+        /*
+         * Keep polling while anything is still settling.
+         *
+         * The Receive card starts the poll for its watch and stops it in a
+         * `finally` -- but `waitForFunds` resolves the moment money *arrives*,
+         * which is while it is still in a mempool. Polling therefore stopped one
+         * step before the confirmation that turns those coins into boarding
+         * funds, so `boardingConfirmed` stayed zero and the onboard button never
+         * enabled on its own. Here the panel owns the question it asks: poll
+         * until nothing is unconfirmed, then stop.
+         *
+         * Left alone while the Receive watch is running, so the two cannot
+         * fight over the same timer.
+         */
+        effect(() => {
+            const settling =
+                this.chain.pending() ||
+                this.arkade.boarding().some((utxo) => !utxo.confirmed);
+
+            if (settling) this.chain.start();
+            else if (!this.arkade.watching()) this.chain.stop();
+        });
 
         // The notification. `seenInMempool` is set only for a txid the watcher
         // has not reported before, so a poll that keeps returning the same

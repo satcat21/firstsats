@@ -17,14 +17,22 @@ import { MatButtonModule } from "@angular/material/button";
 import { MAT_DIALOG_DATA, MatDialogModule } from "@angular/material/dialog";
 import { MatIconModule } from "@angular/material/icon";
 import { I18nService } from "../core/i18n.service";
+import type { Accent } from "../core/profile.service";
 
 export interface PhraseData {
     readonly mnemonic: string;
+    /** The wallet these words belong to, so the dialog wears its colour. */
+    readonly accent?: Accent;
 }
 
 @Component({
     selector: "app-phrase-dialog",
     changeDetection: ChangeDetectionStrategy.OnPush,
+    host: {
+        "[class.user-accent]": "data.accent !== undefined",
+        "[style.--tint]": "data.accent?.tint ?? null",
+        "[style.--ink]": "data.accent?.ink ?? null",
+    },
     imports: [MatButtonModule, MatDialogModule, MatIconModule],
     template: `
         <h2 mat-dialog-title>
@@ -139,7 +147,8 @@ export interface PhraseData {
 })
 export class PhraseDialog {
     readonly i18n = inject(I18nService);
-    private readonly data = inject<PhraseData>(MAT_DIALOG_DATA);
+    /** Public because the host bindings above read the accent from it. */
+    readonly data = inject<PhraseData>(MAT_DIALOG_DATA);
 
     readonly words = this.data.mnemonic.split(/\s+/).filter(Boolean);
 

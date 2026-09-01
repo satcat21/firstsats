@@ -395,6 +395,31 @@ html {
 }
 
 /*
+ * A dialog wears the colour of the wallet that opened it.
+ *
+ * Dialogs render in the CDK overlay, attached to `<body>` and therefore outside
+ * the pane that defines `--tint` and `--ink` -- so a dialog raised from Alice's
+ * wallet came up in the app's default purple, with nothing tying it to the
+ * wallet whose money it was about to move. The vars are set on the dialog's own
+ * host instead, and this repeats the remap `.pane` does so the two agree.
+ *
+ * Global rather than component-scoped because the same treatment is wanted by
+ * four different dialogs, and the dark-mode variant has to match on an
+ * attribute set on `<html>`, above the overlay.
+ */
+.user-accent {
+    --accent: var(--ink);
+    --accent-soft: color-mix(in srgb, var(--tint) 45%, transparent);
+    --btn-fill: var(--ink);
+    --btn-label: #ffffff;
+}
+
+[data-theme="dark"] .user-accent {
+    --accent: var(--tint);
+    --accent-soft: color-mix(in srgb, var(--tint) 20%, transparent);
+}
+
+/*
  * Status chips. `mat-chip` renders the shape; these supply the meaning. The
  * foreground is its own token rather than a reuse of `--success` and friends:
  * those are tuned for text on the page surface, and a tinted chip moves the
