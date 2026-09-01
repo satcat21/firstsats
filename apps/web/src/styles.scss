@@ -31,14 +31,26 @@
  *
  * Adding a `<mat-icon>` means adding its name here and regenerating: request
  * that list as `icon_names=` on the Google Fonts css2 endpoint with a browser
- * User-Agent, then save the woff2 it points at over public/fonts/.
+ * User-Agent, then save the woff2 it points at over src/fonts/.
+ *
+ * It lives in `src/` rather than `public/` so the bundler resolves and
+ * fingerprints it, emitting a URL relative to the built stylesheet. A file in
+ * `public/` is copied verbatim and can only be referenced as `/fonts/...`,
+ * which breaks on a project page served from `/<repo>/`.
  */
 @font-face {
     font-family: 'Material Symbols Outlined';
     font-style: normal;
     font-weight: 100 700;
     font-display: block;
-    src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
+    /*
+     * Relative, not `/fonts/...`. A project page is served from `/<repo>/`, and
+     * `--base-href` only rewrites the `<base>` tag -- it does not touch `url()`
+     * inside CSS, so a root-absolute path resolves against the domain and 404s.
+     * A relative one resolves against this stylesheet, which is deployed beside
+     * the `fonts/` directory either way.
+     */
+    src: url('./fonts/material-symbols-outlined.woff2') format('woff2');
 }
 
 .material-symbols-outlined {
