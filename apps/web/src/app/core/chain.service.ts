@@ -49,6 +49,34 @@ export interface MisdirectedFunds {
     readonly sats: number;
 }
 
+/**
+ * What a completed settlement actually cost and delivered.
+ *
+ * Read from the commitment transaction rather than predicted beforehand: the
+ * server advertises its intent fees as CEL expressions and the miner fee is not
+ * known until the round builds its transaction, so the only honest figures are
+ * the ones on-chain afterwards.
+ */
+export interface SettlementFacts {
+    /** Satoshis paid to the destination by the commitment transaction. */
+    readonly arrived: number;
+    /**
+     * The miner fee of the whole commitment transaction.
+     *
+     * One transaction carries every exit in the round, so this is the round's
+     * fee, not this withdrawal's share of it -- which is the interesting part.
+     */
+    readonly fee: number;
+    readonly confirmed: boolean;
+}
+
+/** The shape of the Esplora `/tx/:txid` response this reads. */
+interface EsploraTxDetail {
+    fee?: number;
+    status?: { confirmed?: boolean };
+    vout?: Array<{ scriptpubkey_address?: string; value?: number }>;
+}
+
 /** The shape of the Esplora `/address/:addr/txs` entries this reads. */
 interface EsploraTx {
     txid: string;
@@ -494,6 +522,39 @@ export class ChainService {
         const socket = this.socket;
         this.socket = null;
         socket?.close();
+    }
+
+    /**
+     * What a settlement delivered and what the round's transaction cost.
+     *
+     * Returns null rather than throwing: this is an explanation, and a
+     * withdrawal that succeeded should not look like it failed because an
+     * explorer was unreachable or has not indexed the transaction yet.
+     */
+    async settlement(txid: string, destination: string): Promise<SettlementFacts | null> {
+        const base = this.arkade.network.esploraUrl.replace(/\/+$/, "");
+        try {
+            const response = await fetch(`${base}/tx/${txid}`);
+            if (!response.ok) return null;
+            const body = (await response.json()) as EsploraTxDetail;
+
+            const arrived = (body.vout ?? [])
+                .filter((out) => out.scriptpubkey_address === destination)
+                .reduce((sum, out) => sum + (out.value ?? 0), 0);
+
+            // A transaction that pays the destination nothing is not the one
+            // this withdrawal is about; better to say nothing than to explain
+            // the wrong transaction.
+            if (arrived <= 0) return null;
+
+            return {
+                arrived,
+                fee: body.fee ?? 0,
+                confirmed: body.status?.confirmed === true,
+            };
+        } catch {
+            return null;
+        }
     }
 
     /** Forget what has been seen, so a new faucet attempt announces itself. */

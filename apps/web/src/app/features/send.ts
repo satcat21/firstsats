@@ -14,6 +14,7 @@ import { MatButtonToggleModule } from "@angular/material/button-toggle";
 import { MatInputModule } from "@angular/material/input";
 import { short } from "@firstsats/core";
 import { ArkadeService } from "../core/arkade.service";
+import { ChainService, type SettlementFacts } from "../core/chain.service";
 import { I18nService } from "../core/i18n.service";
 import { Insight } from "../ui/insight";
 
@@ -80,6 +81,20 @@ import { Insight } from "../ui/insight";
                         </p>
                         <p class="subtle">{{ i18n.t("send.txid") }}</p>
                         <code>{{ txid }}</code>
+
+                        <!-- The numbers a withdrawal is actually judged by. Only
+                             once the explorer has the transaction: predicting
+                             them beforehand would mean guessing at a fee the
+                             round had not decided yet. -->
+                        @if (settlement(); as facts) {
+                            <dl class="facts">
+                                <dt>{{ i18n.t("send.arrived") }}</dt>
+                                <dd>{{ i18n.sats(facts.arrived) }}</dd>
+                                <dt>{{ i18n.t("send.minerFee") }}</dt>
+                                <dd>{{ i18n.sats(facts.fee) }}</dd>
+                            </dl>
+                            <p class="subtle note">{{ i18n.t("send.feeShared") }}</p>
+                        }
                         <p class="subtle note">
                             {{
                                 withdrawing()
@@ -170,8 +185,10 @@ import { Insight } from "../ui/insight";
                             <p class="subtle whole">
                                 {{
                                     i18n.t(
-                                        "send.withdrawWhole",
-                                        i18n.sats(arkade.balance()?.available ?? 0)
+                                        arkade.boardingConfirmed() > 0
+                                            ? "send.withdrawWholeIncludingBoarding"
+                                            : "send.withdrawWhole",
+                                        i18n.sats(withdrawable())
                                     )
                                 }}
                             </p>
@@ -348,7 +365,27 @@ import { Insight } from "../ui/insight";
 })
 export class Send {
     readonly arkade = inject(ArkadeService);
+    readonly chain = inject(ChainService);
     readonly i18n = inject(I18nService);
+
+    /**
+     * What the completed withdrawal delivered and cost, once known.
+     *
+     * Null while it is being fetched, and null for good if the explorer cannot
+     * answer -- the withdrawal is no less successful for it.
+     */
+    readonly settlement = signal<SettlementFacts | null>(null);
+
+    /**
+     * Everything a withdrawal will actually move.
+     *
+     * Confirmed boarding funds are included because the withdrawal onboards
+     * them first; unconfirmed ones are not, because the server would reject the
+     * batch that carried them.
+     */
+    readonly withdrawable = computed(
+        () => (this.arkade.balance()?.available ?? 0) + this.arkade.boardingConfirmed()
+    );
 
     /** Off-chain payment, or a collaborative exit back to the chain. */
     readonly mode = signal<"offchain" | "withdraw">("offchain");
@@ -377,11 +414,24 @@ export class Send {
 
     async submit(): Promise<void> {
         this.sending.set(true);
+        const destination = this.address();
         try {
             const txid = this.withdrawing()
-                ? await this.arkade.offboard(this.address())
-                : await this.arkade.send(this.address(), this.amount());
+                ? await this.arkade.offboard(destination)
+                : await this.arkade.send(destination, this.amount());
             this.sentTxid.set(txid);
+
+            /*
+             * What it actually cost, once there is a transaction to read it
+             * from. Not awaited: the withdrawal has already succeeded, and the
+             * numbers are an explanation rather than a result -- a slow or
+             * unindexed explorer should not hold the confirmation on screen.
+             */
+            if (this.withdrawing()) {
+                void this.chain
+                    .settlement(txid, destination)
+                    .then((facts) => this.settlement.set(facts));
+            }
         } catch {
             // Surfaced through arkade.errorFrom() in the template.
         } finally {
@@ -391,6 +441,7 @@ export class Send {
 
     reset(): void {
         this.sentTxid.set(null);
+        this.settlement.set(null);
         this.address.set("");
     }
 }

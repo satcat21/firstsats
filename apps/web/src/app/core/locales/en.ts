@@ -79,6 +79,10 @@ export const EN = {
     "send.success": "Sent {0}",
     "send.availableNote": "{0} available",
     "send.txid": "Arkade transaction",
+    "send.arrived": "Arrived at the address",
+    "send.minerFee": "Miner fee for the round",
+    "send.feeShared":
+        "That fee is for the whole commitment transaction, which carries every exit in the round — not yours alone. On signet it is worth nothing; on mainnet it is the price of leaving Ark.",
     "send.again": "Send another",
 
     "activity.heading": "Activity",
@@ -462,6 +466,8 @@ export const EN = {
     "send.withdrawHint": "A signet address, not an arkade one",
     "send.withdrawSubmit": "Withdraw everything",
     "send.withdrawWhole": "This withdraws your whole balance — {0}. It joins the next batch round, so it takes about a minute and pays an on-chain fee.",
+    "send.withdrawWholeIncludingBoarding":
+        "This withdraws everything you hold — {0}, including the confirmed coins still on your boarding address. Those cannot be paid straight to another address, so they are brought into Ark first: two batch rounds, about two minutes, and an on-chain fee in each. Anything still unconfirmed stays behind.",
     "send.withdrawSuccess": "Withdrawal sent",
     "send.withdrawDone": "A collaborative exit: you handed your VTXOs back in a batch round and the server paid you out on-chain in the same commitment transaction. It needs a block like any other on-chain payment.",
     "quest.withdraw.title": "Take the money back on-chain",

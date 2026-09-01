@@ -77,6 +77,10 @@ export const PT: Messages = {
     "send.success": "{0} enviados",
     "send.availableNote": "{0} disponíveis",
     "send.txid": "Transação Arkade",
+    "send.arrived": "Chegou ao endereço",
+    "send.minerFee": "Taxa de mineração da ronda",
+    "send.feeShared":
+        "Essa taxa é da transação de compromisso inteira, que leva todas as saídas da ronda — não só a tua. Em signet não vale nada; em mainnet é o preço de sair do Ark.",
     "send.again": "Enviar outro pagamento",
 
     "activity.heading": "Atividade",
@@ -460,6 +464,8 @@ export const PT: Messages = {
     "send.withdrawHint": "Um endereço de signet, não um arkade",
     "send.withdrawSubmit": "Levantar tudo",
     "send.withdrawWhole": "Isto levanta todo o teu saldo — {0}. Junta-se à próxima ronda de lote, por isso demora cerca de um minuto e paga uma comissão on-chain.",
+    "send.withdrawWholeIncludingBoarding":
+        "Isto levanta tudo o que tens — {0}, incluindo as moedas confirmadas que ainda estão no teu endereço de embarque. Essas não podem ser pagas diretamente a outro endereço, por isso entram primeiro no Ark: duas rondas de lote, cerca de dois minutos, e uma comissão on-chain em cada. O que ainda não está confirmado fica para trás.",
     "send.withdrawSuccess": "Levantamento enviado",
     "send.withdrawDone": "Uma saída colaborativa: devolveste os teus VTXO numa ronda de lote e o servidor pagou-te on-chain na mesma transação de compromisso. Precisa de um bloco como qualquer pagamento on-chain.",
     "quest.withdraw.title": "Traz o dinheiro de volta on-chain",

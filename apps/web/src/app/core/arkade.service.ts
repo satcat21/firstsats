@@ -595,10 +595,32 @@ export class ArkadeService {
         return txid;
     }
 
+    /**
+     * Withdraw everything this wallet holds to an on-chain address.
+     *
+     * "Everything" includes confirmed boarding funds, which cannot be paid to an
+     * arbitrary address directly: a boarding output's fast spend path is
+     * co-signed by the server and only for boarding, so the alternative is
+     * waiting out the boarding exit delay. Onboarding them first is the only
+     * route that does not, which makes a full withdrawal two batch rounds
+     * rather than one.
+     *
+     * Worth knowing on mainnet: those coins were already on-chain, and this
+     * takes them off and back on again, paying into two commitment transactions
+     * to do it. It is the fast route, not the cheap one.
+     *
+     * Anything still unconfirmed is left behind -- the server rejects a batch
+     * containing an input it cannot see in a block, so including it would fail
+     * the whole withdrawal rather than delay that one output.
+     */
     async offboard(destination: string): Promise<string> {
-        const txid = await this.settling(() =>
-            this.run("offboard", (account) => account.offboard(destination.trim()))
-        );
+        const txid = await this.settling(async () => {
+            if (this.boardingConfirmed() > 0) {
+                await this.run("onboard", (account) => account.onboard(undefined, this.notePhase));
+                await this.refresh();
+            }
+            return this.run("offboard", (account) => account.offboard(destination.trim()));
+        });
         // Remembered on the profile: the balance is zero afterwards, so nothing
         // else distinguishes a wallet that exited from one that never had money.
         if (this.profile) this.profiles.markWithdrawn(this.profile.id);

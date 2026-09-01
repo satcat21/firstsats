@@ -78,6 +78,10 @@ export const DE: Messages = {
     "send.success": "{0} gesendet",
     "send.availableNote": "{0} verfügbar",
     "send.txid": "Arkade-Transaktion",
+    "send.arrived": "An der Adresse angekommen",
+    "send.minerFee": "Mining-Gebühr der Runde",
+    "send.feeShared":
+        "Diese Gebühr gilt für die gesamte Commitment-Transaktion, die jeden Ausstieg der Runde trägt — nicht nur deinen. Auf Signet ist sie wertlos; auf Mainnet ist sie der Preis dafür, Ark zu verlassen.",
     "send.again": "Weitere Zahlung senden",
 
     "activity.heading": "Verlauf",
@@ -461,6 +465,8 @@ export const DE: Messages = {
     "send.withdrawHint": "Eine Signet-Adresse, keine Arkade-Adresse",
     "send.withdrawSubmit": "Alles auszahlen",
     "send.withdrawWhole": "Damit wird dein gesamtes Guthaben ausgezahlt — {0}. Es geht in die nächste Batch-Runde, dauert also etwa eine Minute und kostet eine Onchain-Gebühr.",
+    "send.withdrawWholeIncludingBoarding":
+        "Damit wird alles ausgezahlt, was du hältst — {0}, einschließlich der bestätigten Coins auf deiner Eingangsadresse. Die lassen sich nicht direkt an eine andere Adresse zahlen und werden deshalb zuerst nach Ark geholt: zwei Batch-Runden, etwa zwei Minuten, und je eine Onchain-Gebühr. Noch Unbestätigtes bleibt zurück.",
     "send.withdrawSuccess": "Auszahlung gesendet",
     "send.withdrawDone": "Ein kooperativer Ausstieg: Du hast deine VTXOs in einer Batch-Runde zurückgegeben, und der Server hat dich in derselben Commitment-Transaktion onchain ausgezahlt. Wie jede Onchain-Zahlung braucht das einen Block.",
     "quest.withdraw.title": "Hol das Geld zurück onchain",

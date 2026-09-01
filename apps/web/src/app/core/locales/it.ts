@@ -78,6 +78,10 @@ export const IT: Messages = {
     "send.success": "{0} inviati",
     "send.availableNote": "{0} disponibili",
     "send.txid": "Transazione Arkade",
+    "send.arrived": "Arrivato all'indirizzo",
+    "send.minerFee": "Commissione di mining del round",
+    "send.feeShared":
+        "Quella commissione è dell'intera transazione di impegno, che porta ogni uscita del round, non solo la tua. Su signet non vale nulla; su mainnet è il prezzo per lasciare Ark.",
     "send.again": "Invia un altro pagamento",
 
     "activity.heading": "Attività",
@@ -461,6 +465,8 @@ export const IT: Messages = {
     "send.withdrawHint": "Un indirizzo signet, non uno arkade",
     "send.withdrawSubmit": "Preleva tutto",
     "send.withdrawWhole": "Questo preleva tutto il tuo saldo — {0}. Si unisce al prossimo giro di batch, quindi richiede circa un minuto e paga una commissione on-chain.",
+    "send.withdrawWholeIncludingBoarding":
+        "Questo preleva tutto ciò che hai — {0}, comprese le monete confermate ancora sul tuo indirizzo di imbarco. Quelle non si possono pagare direttamente a un altro indirizzo, quindi entrano prima in Ark: due giri di batch, circa due minuti, e una commissione on-chain per ciascuno. Ciò che non è ancora confermato resta dov'è.",
     "send.withdrawSuccess": "Prelievo inviato",
     "send.withdrawDone": "Un'uscita collaborativa: hai restituito i tuoi VTXO in un giro di batch e il server ti ha pagato on-chain nella stessa transazione di impegno. Serve un blocco come per ogni pagamento on-chain.",
     "quest.withdraw.title": "Riporta il denaro on-chain",

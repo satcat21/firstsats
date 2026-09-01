@@ -78,6 +78,10 @@ export const FR: Messages = {
     "send.success": "{0} envoyés",
     "send.availableNote": "{0} disponibles",
     "send.txid": "Transaction Arkade",
+    "send.arrived": "Arrivé à l'adresse",
+    "send.minerFee": "Frais de minage du tour",
+    "send.feeShared":
+        "Ces frais couvrent toute la transaction d'engagement, qui porte chaque sortie du tour — pas seulement la vôtre. Sur signet ils ne valent rien ; sur mainnet c'est le prix pour quitter Ark.",
     "send.again": "Envoyer un autre paiement",
 
     "activity.heading": "Activité",
@@ -461,6 +465,8 @@ export const FR: Messages = {
     "send.withdrawHint": "Une adresse signet, pas une adresse arkade",
     "send.withdrawSubmit": "Tout retirer",
     "send.withdrawWhole": "Cela retire la totalité de votre solde — {0}. Cela rejoint le prochain tour de lot, prend donc environ une minute et paie des frais on-chain.",
+    "send.withdrawWholeIncludingBoarding":
+        "Cela retire tout ce que vous détenez — {0}, y compris les pièces confirmées encore sur votre adresse d'embarquement. Celles-ci ne peuvent pas être payées directement à une autre adresse : elles passent d'abord dans Ark, soit deux tours de lot, environ deux minutes, et des frais on-chain pour chacun. Ce qui n'est pas encore confirmé reste en place.",
     "send.withdrawSuccess": "Retrait envoyé",
     "send.withdrawDone": "Une sortie collaborative : vous avez rendu vos VTXO lors d'un tour de lot et le serveur vous a réglé on-chain dans la même transaction d'engagement. Il faut un bloc, comme pour tout paiement on-chain.",
     "quest.withdraw.title": "Ramenez l'argent on-chain",
