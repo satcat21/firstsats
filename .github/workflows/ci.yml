@@ -90,9 +90,19 @@ jobs:
         with:
           node-version: "24.20.0"
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
 
       - run: npm install -g npm@12.0.2
+
+      # The web app compiles the shared core from `src/` at the repository root.
+      # Those files resolve their own imports -- `@arkade-os/sdk`, `tslib` --
+      # from the root `node_modules`, because module resolution walks up from
+      # the importing file and never descends into `apps/web`. Installing only
+      # the web project leaves them unresolvable.
+      - name: Install root dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: Install web dependencies
         run: npm --prefix apps/web ci --no-audit --no-fund

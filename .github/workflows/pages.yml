@@ -45,9 +45,17 @@ jobs:
         with:
           node-version: "24.20.0"
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
 
       - run: npm install -g npm@12.0.2
+
+      # The bundle includes the shared core from `src/` at the repository root,
+      # whose imports resolve from the root `node_modules` rather than from
+      # `apps/web`. Without this the build fails to resolve `@arkade-os/sdk`.
+      - name: Install root dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: Install web dependencies
         run: npm --prefix apps/web ci --no-audit --no-fund
