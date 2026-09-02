@@ -100,8 +100,9 @@ batch consumes.
 
 ### In-round (settled)
 
-The server runs batch rounds on a fixed cadence — the public signet deployment
-uses a 60-second session, which `firstsats info` will show you. In a round, the
+The server runs batch rounds on a fixed cadence — the public mutinynet and
+signet deployments both use a 60-second session, which `firstsats info` will
+show you. In a round, the
 server collects everyone's requests, builds one new commitment transaction with
 a fresh tree, and puts it on-chain.
 

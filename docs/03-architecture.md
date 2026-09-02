@@ -8,7 +8,7 @@ around it.
 src/               shared core -- no Node globals except where noted
   account.ts       The teachable API over the SDK's Wallet   <- start here
   narrator.ts      The "show your work" event stream
-  config.ts        Network presets (signet by default) + env overrides
+  config.ts        Network presets (mutinynet by default) + env overrides
   format.ts        Pure presentation helpers
   browser.ts       Barrel of the four modules above, for the web build
   index.ts         Node entry point (adds the three below)
@@ -82,8 +82,9 @@ and no flakiness. The live path is covered separately by the opt-in e2e suite.
 `PaymentError` messages are written for someone who has never used Bitcoin:
 
 > `"tb1qxy…8s2m" is not a valid arkade address. Arkade addresses start with
-> `ark1`. If you have a normal on-chain address (`bc1`, `tb1`), use `offboard`
-> instead — that is a withdrawal, not an off-chain payment.`
+> `ark1` on mainnet and `tark1` on test networks. If you have a normal on-chain
+> address (`bc1`, `tb1`), use `offboard` instead — that is a withdrawal, not an
+> off-chain payment.`
 
 Every check runs before anything is signed or sent.
 
@@ -113,6 +114,22 @@ but it is *not* what a production wallet should do. Your exit data is what lets
 you leave without the server's help, and losing it means losing that guarantee
 (see [How Ark works](./01-how-ark-works.md)). For a real application use
 `SQLiteWalletRepository` in Node or the IndexedDB repositories in a browser.
+
+## One SDK default this app turns off
+
+Both wallet builders — [`src/wallet.ts`](../src/wallet.ts) and its browser
+counterpart — pass `settlementConfig: false`.
+
+Left undefined, the SDK runs a background poll that auto-settles new boarding
+inputs into Ark roughly every minute. For a production wallet that is a sensible
+default. Here it is wrong twice over. Onboarding is the step this app exists to
+show, and a step that happens by itself teaches nothing. Worse, the automatic
+settle races an explicit one for the same boarding output: both register an
+intent, the server honours neither, and the round fails with `no matching intents
+found for intent proof`.
+
+Worth knowing if you copy the wallet setup out of this repo — with the poll on,
+you get onboarding for free and no control over when it happens.
 
 ## Testing strategy
 

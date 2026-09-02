@@ -90,7 +90,7 @@ construction and rendering differ. See
 
 ### Screenshots
 
-Four moments from a real signet session, in the order you meet them.
+Moments from a real session, in the order you meet them.
 
 **Starting out.** No wallet, no account, nothing registered anywhere — a user is
 just a person in the demo, and the wallet is something they choose to make.
@@ -120,7 +120,7 @@ boarding one that a faucet pays.
   <img src="docs/screenshots/guide.png" alt="The guided tour open beside the Receive screen" width="820">
 </p>
 
-**Two wallets, side by side, mid-payment.** Alice pays Bob 1,000 sats off-chain
+**Two wallets, side by side, mid-payment.** Alice pays Bob 35,000 sats off-chain
 while both panes are on screen, so the payment can be watched from both ends.
 Each user carries their own colour through their avatar, tabs and notifications,
 and the narration toast says what just happened and offers the reasoning behind
@@ -130,8 +130,8 @@ it.
   <img src="docs/screenshots/sending-in-ark.png" alt="Alice paying Bob in Ark, both wallets visible" width="820">
 </p>
 
-**The same payment from both sides.** One arkade transaction, `44afc240…421f94`,
-appearing as −1,000 for Alice and +1,000 for Bob. Below it, each wallet's own
+**The same payment from both sides.** One arkade transaction, `34abaf4a…72b264`,
+appearing as −35,000 for Alice and +35,000 for Bob. Below it, each wallet's own
 history: the deposit that arrived on-chain, and the round that brought it into
 Ark — separate actions, because they happened at different times for different
 reasons. Only the on-chain ones carry an explorer link; an Ark payment has no
@@ -303,8 +303,8 @@ published site is fixed to whichever deployment it was built against.
 **This is a demo. Do not put real money in it.** The CLI stores seeds
 unencrypted on disk and `init` prints the recovery phrase to stdout; the web app
 keeps the seed in `localStorage`, where any script on the origin can read it.
-These are deliberate simplifications, acceptable only because the defaults point
-at signet, where coins are worthless.
+These are deliberate simplifications, acceptable only because every network on
+offer is a test network, where coins are worthless.
 
 See [SECURITY.md](SECURITY.md) for the full policy and how to report a
 vulnerability privately.

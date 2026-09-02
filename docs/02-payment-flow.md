@@ -90,7 +90,7 @@ Your wallet registers an intent with the server and waits for the next batch
 round. The server builds **one commitment transaction covering everyone in that
 round**, and your share becomes a leaf in its tree.
 
-This takes about a minute on the public signet deployment — one batch session —
+This takes about a minute on the public deployments — one batch session —
 because it is genuinely waiting for a block-bound event. It is also the *only*
 step in this entire flow that touches the blockchain.
 

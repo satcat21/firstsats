@@ -7,8 +7,11 @@ npm run web          # dev server on http://localhost:4200
 npm run web:build    # production bundle into apps/web/dist
 ```
 
-It runs against the same public Arkade signet deployment as the CLI, and it is
-the same code doing the work.
+It runs against the same public Arkade deployments as the CLI — both default to
+mutinynet — and it is the same code doing the work. Unlike the CLI, which reads
+`FIRSTSATS_NETWORK` once at startup, the web app can switch between mutinynet and
+signet at runtime from the header. Regtest is CLI-only: its server is on
+`http://localhost`, and a page served over HTTPS cannot call it.
 
 ---
 
@@ -22,9 +25,10 @@ your money"* cannot demonstrate that by handing the keys to a backend.
 Two facts made the browser-only route viable, and both were checked rather than
 assumed:
 
-1. **The Arkade endpoints allow cross-origin requests.** Both
-   `signet.arkade.sh` and `mempool.signet.arkade.sh` return
-   `Access-Control-Allow-Origin: *`, so the page talks to them directly.
+1. **The Arkade endpoints allow cross-origin requests.** The Ark servers and
+   their mempool instances — `mutinynet.arkade.sh`, `signet.arkade.sh` and the
+   `mempool.*` hosts beside them — return `Access-Control-Allow-Origin: *`, so
+   the page talks to them directly.
 2. **The SDK is built for browsers.** It ships IndexedDB repositories, and a
    browser already has a native `EventSource`.
 
@@ -196,8 +200,10 @@ The browser keystore writes the mnemonic to `localStorage` in cleartext.
 dependency, an XSS bug, a malicious extension. That is a strictly weaker position
 than the CLI's file, which at least requires filesystem access.
 
-It is acceptable here for exactly one reason: the app is signet-only, and signet
-coins are worthless. The UI says so on every screen.
+It is acceptable here for exactly one reason: the app only ever talks to test
+networks, whose coins are worthless. Mainnet is not among the presets the browser
+offers, and the header names the chain in its own colour with a tooltip saying
+the coins have no value.
 
 A real browser wallet would encrypt the seed under a user passphrase and store
 only ciphertext, or keep it in a service worker that never exposes it to the
