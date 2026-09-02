@@ -28,8 +28,8 @@ import type { NetworkPreset } from "@firstsats/core";
  * different one. That refusal is correct and it is what a single shared
  * database name turns into a hard error the moment a second profile exists.
  */
-export function databaseFor(id: string): string {
-    return `firstsats.${id}`;
+export function databaseFor(id: string, network: string): string {
+    return `firstsats.${network}.${id}`;
 }
 
 /** Marks the one-time removal of the pre-profiles shared database. */
@@ -72,7 +72,14 @@ export async function openBrowserWallet(
 
     dropLegacyDatabase();
 
-    const database = databaseFor(options.id);
+    /*
+     * Keyed by network as well as profile.
+     *
+     * The same seed is a valid wallet on every deployment, and its VTXOs,
+     * contracts and rotation watermarks are not. One database across networks
+     * would let signet state answer a question asked of mutinynet.
+     */
+    const database = databaseFor(options.id, options.network.name);
 
     return Wallet.create({
         identity,
@@ -80,6 +87,15 @@ export async function openBrowserWallet(
         // an HD wallet, and "auto" resolving it from the identity's shape is a
         // silent dependency for a privacy property this app relies on.
         walletMode: "hd",
+        /*
+         * No background settlement -- see the same note in src/wallet.ts.
+         *
+         * The SDK otherwise auto-settles boarding inputs on a one-minute poll.
+         * It is why boarding appeared to work before there was a button for it,
+         * and why it stopped once there was: the poll and the button both
+         * register an intent for the same output, and the server rejects both.
+         */
+        settlementConfig: false,
         arkServerUrl: options.network.arkServerUrl,
         esploraUrl: options.network.esploraUrl,
         storage: {

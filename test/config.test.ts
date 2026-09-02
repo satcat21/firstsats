@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { ConfigError, NETWORKS, PRESET_NAMES, resolveConfig } from "../src/config.js";
+import {
+    ConfigError,
+    DEFAULT_NETWORK,
+    NETWORKS,
+    PRESET_NAMES,
+    resolveConfig,
+} from "../src/config.js";
 
 describe("resolveConfig", () => {
-    it("defaults to the public signet deployment", () => {
+    it("defaults to the public mutinynet deployment", () => {
         const config = resolveConfig({});
-        expect(config.network.name).toBe("signet");
-        expect(config.network.arkServerUrl).toBe("https://signet.arkade.sh");
+        expect(config.network.name).toBe(DEFAULT_NETWORK);
+        expect(config.network.name).toBe("mutinynet");
+        expect(config.network.arkServerUrl).toBe("https://mutinynet.arkade.sh");
         expect(config.dataDir).toBe(".firstsats");
+    });
+
+    it("still reaches signet when asked for it by name", () => {
+        const config = resolveConfig({ FIRSTSATS_NETWORK: "signet" });
+        expect(config.network.arkServerUrl).toBe("https://signet.arkade.sh");
     });
 
     it("selects a preset by name, case-insensitively", () => {
@@ -28,9 +40,9 @@ describe("resolveConfig", () => {
         const config = resolveConfig({
             FIRSTSATS_ARK_SERVER_URL: "http://localhost:7070",
         });
-        expect(config.network.name).toBe("signet");
+        expect(config.network.name).toBe("mutinynet");
         expect(config.network.arkServerUrl).toBe("http://localhost:7070");
-        expect(config.network.esploraUrl).toBe(NETWORKS.signet.esploraUrl);
+        expect(config.network.esploraUrl).toBe(NETWORKS.mutinynet.esploraUrl);
     });
 
     it("ignores empty overrides rather than blanking an endpoint", () => {
@@ -38,7 +50,7 @@ describe("resolveConfig", () => {
             FIRSTSATS_ARK_SERVER_URL: "   ",
             FIRSTSATS_DATA_DIR: "",
         });
-        expect(config.network.arkServerUrl).toBe(NETWORKS.signet.arkServerUrl);
+        expect(config.network.arkServerUrl).toBe(NETWORKS.mutinynet.arkServerUrl);
         expect(config.dataDir).toBe(".firstsats");
     });
 

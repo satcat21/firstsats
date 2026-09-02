@@ -21,6 +21,8 @@ import { I18nService } from "../core/i18n.service";
  */
 const STEP_ICONS: Record<string, string> = {
     "receive.arrived": "savings",
+    // Change is money moving within one wallet, not money arriving at it.
+    "send.change": "swap_horiz",
 };
 
 /** The Material Symbol standing in for each step status. */

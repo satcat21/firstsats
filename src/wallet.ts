@@ -68,6 +68,19 @@ export async function openWallet(options: OpenWalletOptions): Promise<Wallet> {
         // an HD wallet, and "auto" resolving it from the identity's shape is a
         // silent dependency for a privacy property this app relies on.
         walletMode: "hd",
+        /*
+         * No background settlement.
+         *
+         * Left undefined, the SDK runs a poll loop that auto-settles new
+         * boarding inputs into Ark roughly every minute. That is a sensible
+         * default for a wallet and the wrong one here twice over: onboarding is
+         * the step this app exists to show, and a step that happens by itself
+         * teaches nothing -- and an automatic settle races an explicit one for
+         * the same boarding output, so both register an intent, the server
+         * honours neither, and the round fails with "no matching intents found
+         * for intent proof".
+         */
+        settlementConfig: false,
         arkServerUrl: options.network.arkServerUrl,
         esploraUrl: options.network.esploraUrl,
         storage: {

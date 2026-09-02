@@ -14,7 +14,6 @@ import {
     Narrator,
     PaymentError,
     type BoardingUtxoView,
-    resolveConfig,
     sats,
     satsArg,
     type AddressView,
@@ -32,6 +31,7 @@ import { I18nService } from "./i18n.service";
 import { openBrowserWallet } from "./browser-wallet";
 import { NarrationHub } from "./narration-hub";
 import { WalletRegistry } from "./wallet-registry";
+import { NetworkService } from "./network.service";
 import { type Profile, ProfileService } from "./profile.service";
 
 export type Status = "no-wallet" | "connecting" | "ready" | "error";
@@ -102,7 +102,18 @@ function isRoundRetryable(cause: unknown): boolean {
  */
 @Injectable()
 export class ArkadeService {
-    readonly network: NetworkPreset = resolveConfig({}).network;
+    private readonly networks = inject(NetworkService);
+
+    /**
+     * The deployment this wallet talks to.
+     *
+     * A getter rather than a captured value: the choice is global and switching
+     * reloads the page, but reading it live means nothing here can go on using
+     * a preset the app has moved off.
+     */
+    get network(): NetworkPreset {
+        return this.networks.current();
+    }
 
     private readonly profiles = inject(ProfileService);
     private readonly hub = inject(NarrationHub);
@@ -218,6 +229,8 @@ export class ArkadeService {
     private stopWatch: (() => void) | null = null;
     /** Tears down the always-on incoming-funds subscription. */
     private stopListening: (() => void) | null = null;
+    /** The last payment this wallet made, until its change has been accounted for. */
+    private lastSend: { txid: string; amount: number } | null = null;
 
     constructor() {
         this.narrator.on((step) => {
@@ -415,10 +428,17 @@ export class ArkadeService {
         this.roundEvents.update((all) => [...all, step]);
     };
 
-    private async settling<T>(work: () => Promise<T>): Promise<T> {
+    /**
+     * @param label - What is being waited for, so the screen that started it can
+     * keep saying so. `run` owns `busy` only while one attempt is in flight, and
+     * a settlement that retries spends time between attempts where a button
+     * reverting to its resting state would read as "nothing is happening".
+     */
+    private async settling<T>(label: string, work: () => Promise<T>): Promise<T> {
         this.roundEvents.set([]);
         try {
             for (let attempt = 1; ; attempt++) {
+                this.busy.set(label);
                 this.roundAttempt.set(attempt);
                 this.roundPhase.set("running");
 
@@ -426,6 +446,10 @@ export class ArkadeService {
                     return await work();
                 } catch (cause) {
                     if (attempt >= ROUND_ATTEMPTS || !isRoundRetryable(cause)) {
+                        // Out of rounds on a failure nothing here caused. The
+                        // deployment is the suspect, so say so once rather than
+                        // leaving the reader to re-read their own inputs.
+                        if (isRoundRetryable(cause)) this.networks.roundExhausted();
                         throw cause;
                     }
                 }
@@ -433,6 +457,8 @@ export class ArkadeService {
         } finally {
             this.roundPhase.set(null);
             this.roundAttempt.set(1);
+            // `run` clears this after an attempt; the waits around it are ours.
+            this.busy.set(null);
         }
     }
 
@@ -459,12 +485,6 @@ export class ArkadeService {
      * which is the opposite of what this app is for.
      */
     private announce(funds: IncomingFundsLike): void {
-        // While `watchForFunds` is running, the `receive.wait` step is already on
-        // screen and updates itself the moment money lands -- saying the same
-        // thing again puts two toasts up for one payment. This subscription is
-        // here for the other case: money that arrives when nobody is watching.
-        if (this.watching()) return;
-
         const total =
             funds.type === "vtxo"
                 ? funds.newVtxos.reduce((sum, v) => sum + v.value, 0)
@@ -472,6 +492,55 @@ export class ArkadeService {
         if (total <= 0) return;
 
         const offchain = funds.type === "vtxo";
+
+        /*
+         * Your own change, not somebody's payment.
+         *
+         * An arkade transaction destroys the outputs it spends and creates new
+         * ones -- the payment and the change -- so change arrives on the same
+         * subscription a stranger's payment would, and was being announced as
+         * money turning up. What separates them is in the event already: a
+         * payment to you spends nothing of yours, and change always does.
+         *
+         * Worth narrating rather than swallowing. "Sent 1,000, received 2,000"
+         * is the moment the model of a wallet as a balance breaks and the model
+         * of it as a set of outputs has to replace it.
+         */
+        if (funds.type === "vtxo") {
+            const sent = this.lastSend;
+            /*
+             * Two ways to recognise it, because the server does not always fill
+             * in the outputs a transaction consumed: either the event says this
+             * spent something of ours, or the output was created by the very
+             * transaction this wallet just sent.
+             */
+            const mine =
+                funds.spentVtxos.length > 0 ||
+                (sent !== null &&
+                    funds.newVtxos.some((vtxo) => vtxo.txid === sent.txid));
+
+            if (mine) {
+                this.lastSend = null;
+                const paid =
+                    sent?.amount ??
+                    Math.max(
+                        0,
+                        funds.spentVtxos.reduce((sum, v) => sum + v.value, 0) - total
+                    );
+                this.narrator.info("send.change", `Change ${sats(total)}`, {
+                    titleMessage: {
+                        key: "step.change.title",
+                        args: [satsArg(total)],
+                    },
+                    detailMessage: {
+                        key: "step.change.detail",
+                        args: [satsArg(paid + total), satsArg(paid), satsArg(total)],
+                    },
+                    behindMessage: { key: "step.send.submit.before.why" },
+                });
+                return;
+            }
+        }
         this.narrator.info(
             "receive.arrived",
             `Received ${sats(total)}`,
@@ -561,6 +630,15 @@ export class ArkadeService {
         const txid = await this.run("send", (account) =>
             account.send(address.trim(), amount)
         );
+        /*
+         * Remembered so the change can be recognised when it lands.
+         *
+         * The subscription reports new outputs on this wallet's scripts, and a
+         * payment's change is one of those -- indistinguishable from money
+         * arriving unless you know which transaction created it. This wallet
+         * created that transaction, so it does.
+         */
+        this.lastSend = { txid, amount };
         await this.refresh();
         return txid;
     }
@@ -587,7 +665,7 @@ export class ArkadeService {
      */
     /** Fold preconfirmed money into a batch, so it becomes settled. */
     async settle(): Promise<string> {
-        const txid = await this.settling(() =>
+        const txid = await this.settling("settle", () =>
             this.run("settle", (account) => account.settle(this.notePhase))
         );
         await this.refresh();
@@ -614,13 +692,36 @@ export class ArkadeService {
      * the whole withdrawal rather than delay that one output.
      */
     async offboard(destination: string): Promise<string> {
-        const txid = await this.settling(async () => {
-            if (this.boardingConfirmed() > 0) {
-                await this.run("onboard", (account) => account.onboard(undefined, this.notePhase));
-                await this.refresh();
-            }
-            return this.run("offboard", (account) => account.offboard(destination.trim()));
-        });
+        /*
+         * Boarding funds first, and as a round of their own.
+         *
+         * Two settlements cannot share one `settling`: it retries the work it
+         * was given, so a retryable offboard failure would re-run a boarding
+         * that had already succeeded and fail with "nothing to onboard" --
+         * turning a recoverable round into a dead end, and reporting the wrong
+         * reason for it.
+         */
+        if (this.boardingConfirmed() > 0) {
+            await this.settling("onboard", () =>
+                this.run("onboard", (account) => account.onboard(undefined, this.notePhase))
+            );
+
+            /*
+             * Then wait for the indexer before spending the result.
+             *
+             * The commitment transaction has only just been broadcast, and the
+             * indexer the wallet reads goes on reporting the boarding output as
+             * unspent for a moment afterwards -- the same lag `onboard` already
+             * schedules a second refresh for. Offboarding into that gap asks the
+             * wallet to spend VTXOs it cannot see yet.
+             */
+            await new Promise((resolve) => setTimeout(resolve, AFTER_SETTLE_MS));
+            await this.refresh();
+        }
+
+        const txid = await this.settling("offboard", () =>
+            this.run("offboard", (account) => account.offboard(destination.trim()))
+        );
         // Remembered on the profile: the balance is zero afterwards, so nothing
         // else distinguishes a wallet that exited from one that never had money.
         if (this.profile) this.profiles.markWithdrawn(this.profile.id);
@@ -634,7 +735,7 @@ export class ArkadeService {
      * @param only - Outpoints chosen by the user. Omitted onboards them all.
      */
     async onboard(only?: readonly string[]): Promise<string> {
-        const txid = await this.settling(() =>
+        const txid = await this.settling("onboard", () =>
             this.run("onboard", (account) => account.onboard(only, this.notePhase))
         );
         await this.refresh();
@@ -699,6 +800,14 @@ export class ArkadeService {
         if (!account) {
             throw new Error("No wallet is connected.");
         }
+        /*
+         * Restored, not cleared.
+         *
+         * A round holds `busy` across its waits, and a refresh running inside
+         * one would otherwise end by setting it to null -- leaving the button
+         * that started the round looking idle while the round carried on.
+         */
+        const previous = this.busy();
         this.busy.set(label);
         this.failure.set(null);
         try {
@@ -707,7 +816,7 @@ export class ArkadeService {
             this.failure.set({ label, detail: describe(error) });
             throw error;
         } finally {
-            this.busy.set(null);
+            this.busy.set(previous);
         }
     }
 }

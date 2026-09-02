@@ -9,3 +9,6 @@ dist/
 # Angular
 apps/web/dist/
 apps/web/.angular/
+
+# Local environment; see .env.example
+.env

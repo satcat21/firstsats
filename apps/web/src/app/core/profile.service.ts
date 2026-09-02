@@ -11,6 +11,7 @@
  */
 
 import { Injectable, computed, signal } from "@angular/core";
+import { NETWORKS } from "@firstsats/core";
 import { createMnemonic, isValidMnemonic, normalizeMnemonic } from "./browser-keystore";
 import { roomPrefix } from "./mode.service";
 import { databaseFor } from "./browser-wallet";
@@ -274,7 +275,21 @@ export class ProfileService {
         write(`${STORAGE_KEY}.chapter`, null);
         this.visited.set(new Set());
         write(`${STORAGE_KEY}.visited`, []);
-        await Promise.all(ids.map((id) => dropDatabase(databaseFor(id))));
+        /*
+         * Every network, not just the one on screen.
+         *
+         * Databases are keyed by network, and a wallet that has been used on
+         * two deployments has one for each. Starting over means starting over
+         * everywhere -- a leftover database on a network the reader is not
+         * looking at is exactly the state that comes back to confuse them.
+         */
+        await Promise.all(
+            ids.flatMap((id) =>
+                Object.keys(NETWORKS).map((network) =>
+                    dropDatabase(databaseFor(id, network))
+                )
+            )
+        );
     }
 
     /** Show one profile on its own. */

@@ -90,7 +90,20 @@ export const receive: Command = async (ctx) => {
 
 /** `firstsats onboard` -- turn confirmed on-chain funds into VTXOs. */
 export const onboard: Command = async (ctx) => {
-    const txid = await withSession(ctx, (s) => s.account.onboard());
+    /*
+     * The round's own events, printed as they arrive.
+     *
+     * A batch round is the one part of this flow that can fail for reasons
+     * outside the wallet, and the server says which -- but only on the event
+     * stream. Without this the CLI reports "the round was dropped" and throws
+     * away the sequence that says whether this wallet was ever in it.
+     */
+    const txid = await withSession(ctx, (s) =>
+        s.account.onboard(undefined, (event) => {
+            const reason = "reason" in event && event.reason ? `: ${event.reason}` : "";
+            ctx.out(style.dim(`     round: ${event.type}${reason}`));
+        })
+    );
 
     present(ctx, { txid }, () => {
         ctx.out();

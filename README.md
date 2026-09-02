@@ -13,8 +13,9 @@ actually looks like.
 
 ### ▶ [Try it live](https://satcat21.github.io/firstsats/)
 
-The web app, in your browser, on public signet — no install, no sign-up, and no
-coins of value.
+The web app, in your browser, on a public Arkade test deployment — no install,
+no sign-up, and no coins of value. It opens on mutinynet and you can switch to
+signet from the header.
 
 ```
 $ firstsats send tark1qw8f... 5000
@@ -59,14 +60,18 @@ npm run firstsats -- tour      # a walkthrough that adapts to your wallet's stat
 `tour` reads your actual balance and tells you the one thing worth doing next.
 Follow it. It will send you to a faucet, then to `onboard`, then to `send`.
 
-Defaults point at the **public Arkade signet deployment** (`signet.arkade.sh`),
-which is live and free. The coins are worthless, which is the point.
+Defaults point at the **public Arkade mutinynet deployment**
+(`mutinynet.arkade.sh`), which is live, free, and produces a block every thirty
+seconds instead of every ten minutes. The coins are worthless, which is the
+point. `FIRSTSATS_NETWORK=signet` switches to the ten-minute chain.
 
 ## The web app
 
 **[Try it live](https://satcat21.github.io/firstsats/)** — no install,
 no sign-up, no coins of value. It runs entirely in your browser against public
-signet infrastructure.
+Arkade infrastructure, opening on **mutinynet**; the header switches between
+mutinynet and signet, and the choice is remembered. Regtest is CLI-only — a
+page served over HTTPS cannot call `http://localhost`.
 
 ```bash
 npm run web          # dev server on http://localhost:4200
@@ -229,7 +234,7 @@ Every setting is optional. See [`.env.example`](.env.example).
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `FIRSTSATS_NETWORK` | `signet` | `signet`, `mutinynet` or `regtest` |
+| `FIRSTSATS_NETWORK` | `mutinynet` | `signet`, `mutinynet` or `regtest` |
 | `FIRSTSATS_ARK_SERVER_URL` | per preset | Override the Arkade server |
 | `FIRSTSATS_ESPLORA_URL` | per preset | Override the on-chain data source |
 | `FIRSTSATS_DATA_DIR` | `.firstsats` | Where keystores are written |

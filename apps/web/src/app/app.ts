@@ -8,12 +8,12 @@ import {
 import { MatButtonModule } from "@angular/material/button";
 import { MatCardModule } from "@angular/material/card";
 import { MatDialog } from "@angular/material/dialog";
-import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatIconModule } from "@angular/material/icon";
 import { MatMenuModule } from "@angular/material/menu";
-import { MatSelectModule } from "@angular/material/select";
 import { MatTooltipModule } from "@angular/material/tooltip";
+import { NETWORKS, type PresetName } from "@firstsats/core";
 import { I18nService } from "./core/i18n.service";
+import { NetworkService } from "./core/network.service";
 import { ModeService } from "./core/mode.service";
 import type { LocaleCode, Messages } from "./core/messages";
 import { type Profile, ProfileService } from "./core/profile.service";
@@ -24,6 +24,7 @@ import { ProfilePane } from "./features/profile-pane";
 import { Tour } from "./features/tour";
 import { NarrationToasts } from "./ui/narration-toasts";
 import { ConfirmDialog } from "./ui/confirm-dialog";
+import { NetworkDialog } from "./ui/network-dialog";
 import { firstValueFrom } from "rxjs";
 
 /**
@@ -40,10 +41,8 @@ import { firstValueFrom } from "rxjs";
     imports: [
         MatButtonModule,
         MatCardModule,
-        MatFormFieldModule,
         MatIconModule,
         MatMenuModule,
-        MatSelectModule,
         MatTooltipModule,
         ProfilePane,
         Tour,
@@ -60,27 +59,63 @@ import { firstValueFrom } from "rxjs";
                 </div>
             </div>
 
+            <!-- Centred on the page rather than parked in the control cluster:
+                 which chain you are on is the one fact here that changes what
+                 every number below it means. -->
+            <div class="middle">
+                <button
+                    matButton="outlined"
+                    class="net"
+                    [attr.data-network]="networks.name()"
+                    [matTooltip]="i18n.t('app.demoBadge', network().label)"
+                    [attr.aria-label]="i18n.t('network.open')"
+                    (click)="openNetwork()"
+                >
+                    <span class="net-dot"></span>
+                    {{ network().label }}
+                </button>
+            </div>
+
             <div class="controls">
                 <!-- Docking is toggled from the guide panel itself -- the
                      control belongs on the thing it moves, not in a header bar
                      shared with everything else. See the app-tour component. -->
 
-                <!-- Free play or a guided run. The quest never blocks anything;
-                     it only says what to do next and notices when you do. -->
-                <!-- Entering and leaving are doors, not a toggle: each is
-                     confirmed, and the label always names where the button
-                     takes you rather than where you are. -->
-                @if (quest.enabled()) {
-                    <button matButton class="mode on" (click)="leaveQuest()">
-                        <mat-icon>logout</mat-icon>
-                        {{ i18n.t("quest.leave") }}
-                    </button>
-                } @else {
-                    <button matButton class="mode" (click)="enterQuest()">
-                        <mat-icon>explore</mat-icon>
-                        {{ i18n.t("quest.enter") }}
-                    </button>
-                }
+                <!-- A menu, not a select. The outlined form field was the
+                     widest thing in the row and the loudest, for a control
+                     touched once a session; this says the same in a sixth of
+                     the space and matches the avatar menu beside it.
+
+                     The code, not a flag: languages are not countries, and the
+                     one flag any of these could carry would tell half its
+                     speakers they were not the audience. Windows renders no
+                     flag emoji at all, besides. -->
+                <button
+                    matButton
+                    class="lang"
+                    [matMenuTriggerFor]="langMenu"
+                    [matTooltip]="i18n.t('lang.label')"
+                    [attr.aria-label]="i18n.t('lang.label')"
+                >
+                    <mat-icon>language</mat-icon>
+                    {{ i18n.locale().toUpperCase() }}
+                </button>
+
+                <mat-menu #langMenu="matMenu">
+                    @for (locale of i18n.locales; track locale.code) {
+                        <!-- Named in its own language: somebody looking for
+                             theirs should not have to read English to find it. -->
+                        <button mat-menu-item (click)="setLocale(locale.code)">
+                            <!-- Always rendered, so every label starts at the
+                                 same x whether or not it is the current one. -->
+                            <mat-icon
+                                [style.opacity]="locale.code === i18n.locale() ? 1 : 0"
+                                >check</mat-icon
+                            >
+                            {{ locale.label }}
+                        </button>
+                    }
+                </mat-menu>
 
                 <button
                     matIconButton
@@ -94,19 +129,6 @@ import { firstValueFrom } from "rxjs";
                         {{ theme.theme() === "dark" ? "dark_mode" : "light_mode" }}
                     </mat-icon>
                 </button>
-
-                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="lang">
-                    <mat-icon matPrefix class="lang-icon">language</mat-icon>
-                    <mat-select
-                        [value]="i18n.locale()"
-                        (valueChange)="setLocale($event)"
-                        [attr.aria-label]="i18n.t('lang.label')"
-                    >
-                        @for (locale of i18n.locales; track locale.code) {
-                            <mat-option [value]="locale.code">{{ locale.label }}</mat-option>
-                        }
-                    </mat-select>
-                </mat-form-field>
 
                 @if (profiles.profiles().length) {
                     <!--
@@ -195,15 +217,50 @@ import { firstValueFrom } from "rxjs";
                             <mat-icon>person_add</mat-icon>
                             {{ i18n.t("profile.create") }}
                         </button>
+
+                        <!--
+                            Free play or a guided run. The quest never blocks
+                            anything; it only says what to do next and notices
+                            when you do. Entering and leaving are doors, not a
+                            toggle: each is confirmed, and the label always
+                            names where the button takes you rather than where
+                            you are.
+                        -->
+                        <hr />
+                        @if (quest.enabled()) {
+                            <button mat-menu-item (click)="leaveQuest()">
+                                <mat-icon>logout</mat-icon>
+                                {{ i18n.t("quest.leave") }}
+                            </button>
+                        } @else {
+                            <button mat-menu-item (click)="enterQuest()">
+                                <mat-icon>explore</mat-icon>
+                                {{ i18n.t("quest.enter") }}
+                            </button>
+                        }
                     </mat-menu>
                 }
             </div>
         </header>
 
-        <p class="demo-badge">
-            <mat-icon class="inline" aria-hidden="true">science</mat-icon>
-            {{ i18n.t("app.demoBadge") }}
-        </p>
+        <!-- Shown only after three rounds in a row went nowhere, which is a
+             property of the deployment and not of anything the reader did. -->
+        @if (networks.suggestion(); as alternative) {
+            <div class="net-warning" role="status">
+                <mat-icon aria-hidden="true">cloud_off</mat-icon>
+                <p>{{ i18n.t("network.suggest", network().label) }}</p>
+                <button matButton (click)="networks.select(alternative)">
+                    {{ i18n.t("network.suggestAction", label(alternative)) }}
+                </button>
+                <button
+                    matIconButton
+                    [attr.aria-label]="i18n.t('toast.close')"
+                    (click)="networks.dismissSuggestion()"
+                >
+                    <mat-icon>close</mat-icon>
+                </button>
+            </div>
+        }
 
         @if (quest.enabled()) {
             <app-quest-panel />
@@ -288,7 +345,11 @@ import { firstValueFrom } from "rxjs";
             viewport bottom rather than the page, so it stays put while
             scrolling; pointer-events are off except on the toasts themselves.
         -->
-        <div class="lanes" [class.split]="profiles.split()">
+        <div
+            class="lanes"
+            [class.split]="profiles.split()"
+            [class.docked]="tourDocked()"
+        >
             @for (profile of profiles.visible(); track profile.id) {
                 <app-narration-toasts [profileId]="profile.id" />
             }
@@ -360,42 +421,47 @@ import { firstValueFrom } from "rxjs";
         }
 
         /*
-         * Deliberately not wrapping.
+         * Three regions, not two.
          *
-         * A flex container decides where to break the line from the items'
-         * content widths, before any shrinking is considered -- so with
-         * flex-wrap on, a tagline long enough to fill the row sent the whole
-         * control block to a second line even though it had room to spare.
-         * German did this and English did not. Without wrapping the tagline
-         * reflows to two lines instead, which is the part that should give.
-         * The narrow breakpoint below puts wrapping back where it is right.
+         * A grid rather than space-between, because the middle slot has to land
+         * on the *page's* centre and not on whatever is left between a brand
+         * and a control cluster of unequal width. Equal 1fr flanks put the auto
+         * middle column exactly in the middle, whatever either side holds and
+         * however long a translation runs.
          */
         .top {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: flex-start;
-            justify-content: space-between;
             gap: 20px;
         }
 
+        .middle {
+            display: flex;
+            justify-content: center;
+            /* Matches the control row, so the button sits on the same line as
+               the language field beside it rather than riding above it. */
+            --control-height: 36px;
+        }
+
         /*
-         * Shrinks so the control row keeps its line.
+         * Shrinks so the row keeps its line.
          *
-         * Neither side could shrink before, so any locale whose labels ran
-         * longer than English -- "Quest-Modus verlassen" against "Leave quest
-         * mode" -- pushed the whole control row onto a second line while the
-         * header still had room. The tagline reflows now instead, and the
-         * header only truly breaks in two when a phone makes that right.
+         * The brand is what gives when the header runs out of room: a tagline
+         * that reflows to two lines reads fine, and a squeezed control cluster
+         * does not. German made this necessary, English never did. The
+         * min-width is the whole trick -- a grid item, like a flex item,
+         * refuses to go below its content width without it.
          */
         .brand {
             display: flex;
             gap: 11px;
             align-items: center;
-            flex: 1 1 auto;
             min-width: 0;
         }
 
-        /* The text block is what actually has to give; without this the flex
-           item refuses to go below the tagline's full width. */
+        /* The text block is what actually has to give; without this the inner
+           flex item refuses to go below the tagline's full width. */
         .brand > div {
             min-width: 0;
         }
@@ -429,7 +495,6 @@ import { firstValueFrom } from "rxjs";
            reflowed tagline reads fine and a squeezed language picker does not. */
         .controls {
             display: flex;
-            flex: 0 0 auto;
             flex-wrap: wrap;
             justify-content: flex-end;
             gap: 8px;
@@ -459,31 +524,53 @@ import { firstValueFrom } from "rxjs";
             height: 20px;
         }
 
+        /* Quiet by default -- it is a preference, not an action, and it sat
+           beside the one control in this row that should be loud. */
         .lang {
-            width: 150px;
-            font-size: 13px;
-            --mat-form-field-container-height: var(--control-height);
-            --mat-form-field-container-vertical-padding: 8px;
-        }
-
-        .lang ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-            display: none;
-        }
-
-        .lang ::ng-deep .mat-mdc-form-field-infix {
-            min-height: var(--control-height);
-            padding-top: 8px;
-            padding-bottom: 8px;
-        }
-
-        /* The field's flex box is taller than its outline without this. */
-        .lang ::ng-deep .mat-mdc-text-field-wrapper {
             height: var(--control-height);
+            min-width: 0;
+            padding: 0 10px;
+            color: var(--fg-muted);
+            --mdc-text-button-label-text-size: 13px;
+            letter-spacing: 0.02em;
         }
 
-        .lang-icon {
-            margin-right: 6px;
-            color: var(--fg-subtle);
+        .lang:hover {
+            color: var(--fg);
+        }
+
+        /*
+         * The network, as a button rather than a select.
+         *
+         * A dropdown offered two words and no way to say what you were
+         * choosing between; this opens the dialog that can. It carries the
+         * chain's own colour, so which one you are on is answered before the
+         * name is read.
+         */
+        .net {
+            height: var(--control-height);
+            --mdc-outlined-button-label-text-size: 13px;
+        }
+
+        .net[data-network="signet"] {
+            --net-hue: #8e6fd8;
+        }
+
+        .net[data-network="mutinynet"] {
+            --net-hue: #d6489b;
+        }
+
+        .net[data-network] {
+            border-color: color-mix(in srgb, var(--net-hue) 50%, transparent);
+            color: color-mix(in srgb, var(--net-hue) 80%, var(--fg));
+        }
+
+        .net-dot {
+            width: 9px;
+            height: 9px;
+            margin-right: 7px;
+            border-radius: 50%;
+            background: var(--net-hue);
         }
 
         .who {
@@ -578,15 +665,6 @@ import { firstValueFrom } from "rxjs";
             background: var(--accent-soft);
         }
 
-        .mode {
-            height: var(--control-height);
-        }
-
-        .mode.on {
-            color: var(--accent);
-            background: var(--accent-soft);
-        }
-
         app-quest-panel {
             display: block;
             margin-bottom: 18px;
@@ -618,10 +696,85 @@ import { firstValueFrom } from "rxjs";
             color: inherit;
         }
 
+        /*
+         * There is no published colour standard for Bitcoin test networks --
+         * mempool.space, which is the closest thing to a convention, tints its
+         * own chrome per chain without naming the hues. So these are chosen
+         * for the one job the badge has: two deployments that must never be
+         * mistaken for each other, and neither of them mistaken for mainnet
+         * orange.
+         */
+        .demo-badge[data-network] {
+            background: color-mix(in srgb, var(--net-hue) 16%, transparent);
+            color: var(--net-fg);
+            /* Both glyphs take the badge's colour, not the app's accent. */
+            --insight-ink: currentColor;
+        }
+
+        .demo-badge[data-network="signet"] {
+            --net-hue: #8e6fd8;
+            --net-fg: #6c4fbb;
+            --net-fg-dark: #b8a1f0;
+        }
+
+        .demo-badge[data-network="mutinynet"] {
+            --net-hue: #d6489b;
+            --net-fg: #b52f7d;
+            --net-fg-dark: #f18cc4;
+        }
+
+        /*
+         * Inline, not a toast. A toast leaves, and this is a standing condition
+         * -- the deployment stays down for as long as it stays down -- so it
+         * sits under the badge naming the network it is about, and is dismissed
+         * by hand.
+         */
+        .net-warning {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 22px;
+            padding: 10px 8px 10px 14px;
+            border-radius: var(--radius);
+            border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border));
+            background: color-mix(in srgb, var(--warning) 12%, var(--surface-raised));
+        }
+
+        .net-warning p {
+            flex: 1;
+            margin: 0;
+            font-size: 13px;
+            color: var(--fg-muted);
+        }
+
+        .net-warning > .mat-icon {
+            flex: none;
+            color: var(--warning);
+        }
+
+        /* Lifted for the dark ground, which swallows the print-weight hues. */
+        :host-context([data-theme="dark"]) .demo-badge[data-network] {
+            color: var(--net-fg-dark);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :host-context(:root:not([data-theme="light"]))
+                .demo-badge[data-network] {
+                color: var(--net-fg-dark);
+            }
+        }
+
+        /*
+         * The gap under the header used to come from the demo badge sitting
+         * between them. With the badge gone the panes came up flush against it,
+         * so the spacing is now the layout's own rather than a side effect of
+         * something that happened to be in the way.
+         */
         main {
             position: relative;
             display: grid;
             gap: 18px;
+            margin-top: 18px;
             grid-template-columns: minmax(0, 1fr);
         }
 
@@ -700,6 +853,27 @@ import { firstValueFrom } from "rxjs";
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         }
 
+        /*
+         * The docked layout, which the lanes did not know about.
+         *
+         * They mirrored the host box for one pane (860px) and for two (1500px)
+         * but never for the guide-plus-wallet column pair, which is 1280px
+         * wide. So while docked, the lane box was 860px centred inside 1280px
+         * of content and its right edge fell some 200px short of the pane's --
+         * putting the toast under the gutter between the two columns instead
+         * of at the bottom-right of the wallet it belongs to.
+         */
+        .lanes.docked {
+            max-width: 1280px;
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        }
+
+        /* Column two is the wallet; column one is the guide, which narrates
+           nothing and should not have a lane sitting under it. */
+        .lanes.docked > app-narration-toasts {
+            grid-column: 2;
+        }
+
         main.split,
         main.docked {
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -722,12 +896,19 @@ import { firstValueFrom } from "rxjs";
         /* Below this the tour cannot be a column, so it goes back to its tab. */
         /* Too narrow to hold both: stack them rather than crush the brand. */
         @media (max-width: 700px) {
+            /* One column: there is no page centre worth aiming at this narrow,
+               and three regions on one line do not fit. */
             .top {
-                flex-wrap: wrap;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 12px;
+            }
+
+            .middle {
+                justify-content: flex-start;
             }
 
             /*
-             * A whole line to itself, and allowed to shrink into it.
+             * Allowed to shrink into its line.
              *
              * The controls refuse to shrink by design, so on a phone they kept
              * their full desktop width, pushed the header past the viewport and
@@ -736,7 +917,6 @@ import { firstValueFrom } from "rxjs";
              * narrower than its contents.
              */
             .controls {
-                flex: 1 1 100%;
                 justify-content: flex-start;
             }
         }
@@ -773,6 +953,17 @@ export class App {
     readonly profiles = inject(ProfileService);
     readonly theme = inject(ThemeService);
     readonly quest = inject(QuestService);
+
+    readonly networks = inject(NetworkService);
+
+    /**
+     * The deployment on screen.
+     *
+     * Named in the badge rather than written into the sentence: the app runs on
+     * three presets, and a badge that says "Signet" while connected to
+     * mutinynet is the kind of wrong that a reader trusts.
+     */
+    readonly network = this.networks.current;
     private readonly modes = inject(ModeService);
     private readonly dialog = inject(MatDialog);
 
@@ -797,6 +988,20 @@ export class App {
 
     isVisible(id: string): boolean {
         return this.profiles.visible().some((p) => p.id === id);
+    }
+
+    /** The preset's own name, which is not translated -- it is a proper noun. */
+    label(preset: PresetName): string {
+        return NETWORKS[preset].label;
+    }
+
+    /** The chain, what it is for, how it compares, and its server's parameters. */
+    openNetwork(): void {
+        this.dialog.open(NetworkDialog, {
+            // Wide enough for the comparison table to stand without scrolling:
+            // four columns, and the widest cell is a short sentence.
+            width: "min(820px, calc(100vw - 32px))",
+        });
     }
 
     constructor() {

@@ -157,29 +157,23 @@ import { Insight } from "../ui/insight";
                         </p>
                     </article>
 
-                    <!-- One control for both arrival paths. Off-chain
-                         payments come from Arkade's event stream and on-chain
-                         ones from a block explorer, but "tell me when money
-                         turns up" is one intention and deserves one button. -->
+                    <!-- No button to press. Off-chain payments are announced by
+                         the server's event stream, which is running from the
+                         moment the wallet connects; the blockchain is watched
+                         from the moment the boarding address is copied, because
+                         copying it is what someone does before being paid at
+                         it. A control asking the reader to predict that only
+                         made the always-on half look optional. -->
                     <div class="watch">
-                        @if (arkade.watching()) {
+                        @if (chain.status() === "watching") {
                             <span class="live" aria-live="polite">
                                 <span class="pulse" aria-hidden="true"></span>
                                 {{ i18n.t("receive.watching") }}
                             </span>
-                            <button matButton (click)="stopWatching()">
-                                <mat-icon>stop_circle</mat-icon>
-                                {{ i18n.t("receive.stop") }}
-                            </button>
-                        } @else {
-                            <button matButton="filled" (click)="startWatching()">
-                                <mat-icon>notifications_active</mat-icon>
-                                {{ i18n.t("receive.watch") }}
-                            </button>
-                            <app-insight [label]="i18n.t('insight.watch.label')">
-                                {{ i18n.t("insight.watch") }}
-                            </app-insight>
                         }
+                        <app-insight [label]="i18n.t('insight.watch.label')">
+                            {{ i18n.t("insight.watch") }}
+                        </app-insight>
                     </div>
 
                     <p class="sr-only" role="status" aria-live="polite">
@@ -467,7 +461,8 @@ import { Insight } from "../ui/insight";
 export class Receive {
     readonly arkade = inject(ArkadeService);
     readonly i18n = inject(I18nService);
-    private readonly chain = inject(ChainService);
+    /** Public: the template reports whether the chain is being watched. */
+    readonly chain = inject(ChainService);
 
     readonly copied = signal<string | null>(null);
     readonly arkadeQr = signal<string | null>(null);
@@ -489,27 +484,6 @@ export class Receive {
                 .then((url) => this.arkadeQr.set(url))
                 .catch(() => this.arkadeQr.set(null));
         });
-    }
-
-    /**
-     * Watch both arrival paths at once.
-     *
-     * `watchForFunds` resolves on money, on cancellation and on its own
-     * timeout, so stopping the explorer poll in `finally` covers every way the
-     * watch can end — the two never drift apart.
-     */
-    async startWatching(): Promise<void> {
-        this.chain.start();
-        try {
-            await this.arkade.watchForFunds();
-        } finally {
-            this.chain.stop();
-        }
-    }
-
-    stopWatching(): void {
-        this.arkade.stopWatching();
-        this.chain.stop();
     }
 
     /** Human-readable outcome of the last watch, or null while idle. */
@@ -545,5 +519,15 @@ export class Receive {
         } catch {
             // Clipboard blocked; the address is selectable on screen anyway.
         }
+
+        /*
+         * Copying the boarding address is the decision to be paid at it, so it
+         * is what starts watching the chain -- and it is done whether or not
+         * the clipboard write succeeded, because the intent was the click.
+         *
+         * Only the boarding one: the arkade address is served by the server's
+         * event stream, which needs no help from an explorer.
+         */
+        if (value === this.arkade.addresses()?.boarding) this.chain.expect();
     }
 }

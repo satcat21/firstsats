@@ -675,6 +675,9 @@ export class BoardingWatch implements OnDestroy {
 
     private readonly snackBar = inject(MatSnackBar);
 
+    /** Transactions whose confirmation has already triggered a wallet re-read. */
+    private readonly refreshedFor = new Set<string>();
+
     constructor() {
         // One look on arrival, so the panel opens showing the truth rather than
         // "nothing yet" until somebody presses Watch.
@@ -701,6 +704,39 @@ export class BoardingWatch implements OnDestroy {
 
             if (settling) this.chain.start();
             else if (!this.arkade.watching()) this.chain.stop();
+        });
+
+        /*
+         * Re-read the wallet when the chain confirms a payment.
+         *
+         * The two halves of this panel had no wire between them. The chain
+         * watcher polls Esplora and knew perfectly well the money had two
+         * confirmations -- it said so, and listed the address holding it --
+         * while the onboard button asks `arkade.boardingConfirmed()`, which
+         * only ever changes when something calls `refresh()`. Nothing did. So
+         * the panel showed "confirmed" above a button that stayed disabled
+         * until the reader pressed F5 and the wallet re-read on connect.
+         *
+         * Keyed by txid rather than by a count or a transition, for two
+         * reasons: it fires exactly once per confirmation, so it cannot loop
+         * on a payment that was confirmed long ago and already onboarded --
+         * that record survives the onboarding that consumed it -- and it still
+         * fires for somebody who opens this panel after the confirmation
+         * happened, which a pending-to-confirmed transition would miss.
+         */
+        effect(() => {
+            const fresh = this.chain
+                .transactions()
+                .filter((tx) => tx.confirmed && !this.refreshedFor.has(tx.txid));
+            if (fresh.length === 0) return;
+
+            // Reading `busy` subscribes to it, so a confirmation that lands
+            // mid-settlement is picked up as soon as that finishes rather than
+            // being dropped -- the txids are only marked once acted on.
+            if (this.arkade.busy() !== null) return;
+
+            for (const tx of fresh) this.refreshedFor.add(tx.txid);
+            void this.arkade.refresh();
         });
 
         // The notification. `seenInMempool` is set only for a txid the watcher

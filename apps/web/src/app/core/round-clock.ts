@@ -12,8 +12,8 @@
  * not do.
  */
 
-import { Injectable, computed, signal } from "@angular/core";
-import { resolveConfig } from "@firstsats/core";
+import { Injectable, computed, inject, signal } from "@angular/core";
+import { NetworkService } from "./network.service";
 
 /** A scheduled round window, in epoch milliseconds. */
 interface Session {
@@ -21,20 +21,45 @@ interface Session {
     readonly endsAt: number;
 }
 
-/** What the server sends back; every number arrives as a string. */
-interface InfoResponse {
+/**
+ * What the server sends back; every number arrives as a string.
+ *
+ * Only the fields anything here renders. The endpoint returns a good deal more
+ * -- forfeit keys, tapscripts, fee tables -- and declaring those would be
+ * writing down a schema this app does not depend on.
+ */
+export interface ServerFacts {
+    readonly network?: string;
+    readonly signerPubkey?: string;
+    readonly dust?: string;
+    readonly sessionDuration?: string;
+    readonly unilateralExitDelay?: string;
     readonly scheduledSession?: {
         readonly nextStartTime?: string;
         readonly nextEndTime?: string;
-    };
+    } | null;
 }
 
 @Injectable({ providedIn: "root" })
 export class RoundClock {
-    private readonly url = resolveConfig({}).network.arkServerUrl;
+    private readonly url = inject(NetworkService).current().arkServerUrl;
 
     private readonly session = signal<Session | null>(null);
     private readonly now = signal(Date.now());
+
+    /**
+     * Everything else the same response carried.
+     *
+     * Kept rather than discarded because the network dialog needs the server's
+     * parameters before any wallet exists, and this class was already asking
+     * for them once a second's worth of schedule. A second fetch of the same
+     * endpoint, from a service that could only answer once a wallet had
+     * connected, would be the same question asked twice.
+     *
+     * The SDK's `serverInfo()` remains the route for a wallet that has one --
+     * this is the pre-wallet view of the same facts.
+     */
+    readonly facts = signal<ServerFacts | null>(null);
 
     /** Guards against a slow fetch being started again every second. */
     private loading = false;
@@ -77,7 +102,8 @@ export class RoundClock {
         try {
             const response = await fetch(`${this.url}/v1/info`);
             if (!response.ok) return;
-            const body = (await response.json()) as InfoResponse;
+            const body = (await response.json()) as ServerFacts;
+            this.facts.set(body);
             const startsAt = Number(body.scheduledSession?.nextStartTime ?? 0) * 1000;
             const endsAt = Number(body.scheduledSession?.nextEndTime ?? 0) * 1000;
             this.session.set(

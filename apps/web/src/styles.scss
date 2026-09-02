@@ -502,6 +502,19 @@ mat-card-title {
 }
 
 /*
+ * A card title carrying an icon is a row, not a line of text with a picture in
+ * it. Inline, the icon's box sits on the text baseline and rides high; the
+ * heading-icon class was written for flex parents -- it already carries
+ * flex: none -- and the headings in the dialogs are flex for this reason. Card
+ * titles were the ones left out.
+ */
+mat-card-title:has(.heading-icon) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/*
  * Filled and elevated buttons take the brand pair rather than the theme's
  * primary. The state-layer colour is set to the *label* colour so hovering
  * lightens the fill and pushes the label further from it, instead of Material's

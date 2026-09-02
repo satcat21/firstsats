@@ -162,27 +162,40 @@ export function progressFor(state: {
         <mat-card appearance="outlined">
             <mat-card-header>
                 <mat-card-title>
-                    <mat-icon class="heading-icon" aria-hidden="true">explore</mat-icon>
+                    <!-- Only as a column of its own. Inside a tab the tab is
+                         already the label, and no other tab's card carries an
+                         icon before its title -- one that did would look like a
+                         different kind of panel rather than a distinguished
+                         one. Docked, it stands alone beside the wallet and has
+                         nothing else naming it. -->
+                    @if (docked()) {
+                        <mat-icon class="heading-icon" aria-hidden="true">explore</mat-icon>
+                    }
                     {{ i18n.t("tour.heading") }}
                 </mat-card-title>
-            </mat-card-header>
 
-            <!-- The control that moves this panel sits on the panel it moves,
-                 rather than in the header bar, so it is where you are looking
-                 when you decide you want the guide somewhere else. Absent with
-                 two wallets on screen: there is no third column to dock into. -->
-            @if (canDock()) {
-                <button
-                    matIconButton
-                    class="dock-toggle"
-                    [matTooltip]="i18n.t(docked() ? 'tour.undock' : 'tour.dock')"
-                    [attr.aria-label]="i18n.t(docked() ? 'tour.undock' : 'tour.dock')"
-                    [attr.aria-pressed]="docked()"
-                    (click)="toggleDock()"
-                >
-                    <mat-icon>{{ docked() ? "close_fullscreen" : "vertical_split" }}</mat-icon>
-                </button>
-            }
+                <!-- The control that moves this panel sits on the panel it
+                     moves, rather than in the app's header bar, so it is where
+                     you are looking when you decide you want the guide
+                     somewhere else. In the card's own header row so it lines up
+                     with the title rather than being positioned against the
+                     card's corner. Absent with two wallets on screen: there is
+                     no third column to dock into. -->
+                @if (canDock()) {
+                    <button
+                        matIconButton
+                        class="dock-toggle"
+                        [matTooltip]="i18n.t(docked() ? 'tour.undock' : 'tour.dock')"
+                        [attr.aria-label]="i18n.t(docked() ? 'tour.undock' : 'tour.dock')"
+                        [attr.aria-pressed]="docked()"
+                        (click)="toggleDock()"
+                    >
+                        <mat-icon>{{
+                            docked() ? "close_fullscreen" : "vertical_split"
+                        }}</mat-icon>
+                    </button>
+                }
+            </mat-card-header>
 
             <mat-card-content>
                 <p class="subtle blurb">
@@ -296,18 +309,20 @@ export function progressFor(state: {
         }
 
         /*
-         * Pinned to the card rather than placed in the header row: the title
-         * wraps on a narrow pane, and a flow-positioned button would be pushed
-         * around by it.
+         * The header is the row, so the toggle sits on the title's line by
+         * construction. Absolute positioning against the card's corner put it
+         * near the title without ever being level with it.
          */
-        mat-card {
-            position: relative;
+        mat-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
         }
 
+        /* Never squeezed by a title long enough to wrap. */
         .dock-toggle {
-            position: absolute;
-            top: 8px;
-            right: 8px;
+            flex: none;
         }
 
         .blurb {

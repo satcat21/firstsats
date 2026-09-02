@@ -159,6 +159,7 @@ export interface OnboardData {
                         </p>
                     }
 
+
                     <mat-progress-bar mode="indeterminate" />
                 }
                 @case ("done") {
@@ -292,12 +293,50 @@ export interface OnboardData {
             font-weight: 600;
         }
 
+        /*
+         * The same weight as the subject line above, deliberately: these are
+         * the state of the thing being waited for, and they belong to the same
+         * tier of the dialog as the amount. 650 sat between the font's real
+         * weights and came out looking like a different face rather than a
+         * heavier one.
+         */
         .clock {
             display: flex;
             align-items: center;
             gap: 7px;
             color: var(--fg);
+            font-weight: 600;
             font-variant-numeric: tabular-nums;
+        }
+
+        /*
+         * A flex item shrinks by default, and a glyph has no minimum content
+         * width to stop it: beside a one-line label there is nothing to squeeze
+         * against, but beside a wrapping sentence the icon is compressed and
+         * the circle comes out sliced.
+         */
+        .clock mat-icon {
+            flex: none;
+        }
+
+        /*
+         * Hangs under the countdown it explains: 18px of icon plus the 7px gap
+         * the clock rows use, so the text lines up with the text above rather
+         * than with its icon.
+         */
+        .clock-note {
+            margin: 4px 0 0;
+            padding-left: 25px;
+            color: var(--fg-muted);
+        }
+
+        /*
+         * The bar reports that work is going on; the lines above say what and
+         * why. They are separate statements and were running into each other,
+         * because the note deliberately carries no bottom margin of its own.
+         */
+        mat-progress-bar {
+            margin-top: 20px;
         }
 
         .ok,

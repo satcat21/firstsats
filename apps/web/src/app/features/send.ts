@@ -286,9 +286,26 @@ import { Insight } from "../ui/insight";
             width: 100%;
         }
 
+        /*
+         * 18px, matching the inline size used on the Receive screen and in
+         * every card heading. These carried Material's default 24px, which
+         * against a 16px input read as the icon being the subject and the field
+         * its caption.
+         */
         .prefix {
             margin-right: 8px;
             color: var(--fg-subtle);
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* The mode toggles, on the same footing as the labels beside them. */
+        mat-button-toggle .mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            margin-right: 2px;
         }
 
         .suffix {

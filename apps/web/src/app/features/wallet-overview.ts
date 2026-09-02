@@ -11,7 +11,6 @@ import { MatChipsModule } from "@angular/material/chips";
 import { MatIconModule } from "@angular/material/icon";
 import { short } from "@firstsats/core";
 import { ArkadeService } from "../core/arkade.service";
-import { RoundClock, countdownText } from "../core/round-clock";
 import { I18nService } from "../core/i18n.service";
 import { MatDialog } from "@angular/material/dialog";
 import { Insight } from "../ui/insight";
@@ -48,10 +47,14 @@ import { BoardingWatch } from "./boarding-watch";
                                 {{ i18n.t("wallet.showPhrase") }}
                             </button>
                         }
+                        <!-- Only while a refresh is itself in flight. Reading the
+                             balance is safe during a batch round, and a round now
+                             takes minutes of waiting -- exactly when someone wants
+                             to check whether anything has moved. -->
                         <button
                             matButton
                             class="refresh"
-                            [disabled]="arkade.busy() !== null"
+                            [disabled]="arkade.busy() === 'refresh'"
                             (click)="arkade.refresh()"
                         >
                             <mat-icon>refresh</mat-icon>
@@ -275,100 +278,6 @@ import { BoardingWatch } from "./boarding-watch";
 
         }
 
-        @if (arkade.serverInfo(); as info) {
-            <mat-card appearance="outlined">
-                <mat-card-header>
-                    <mat-card-title>
-                        <mat-icon class="inline" aria-hidden="true">dns</mat-icon>
-                        {{ i18n.t("server.heading") }}
-                    </mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                    <dl class="server">
-                        <!-- Named and linked, because the app is a client: this
-                             is somebody else's server, and the reader should be
-                             able to see which one and go and look at it. -->
-                        <dt>
-                            {{ i18n.t("server.url") }}
-                            <app-insight [label]="i18n.t('insight.serverUrl.label')">
-                                {{ i18n.t("insight.serverUrl") }}
-                            </app-insight>
-                        </dt>
-                        <dd>
-                            <a
-                                class="mono"
-                                [href]="arkade.network.arkServerUrl"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                >{{ arkade.network.arkServerUrl }}
-                                <mat-icon class="inline" aria-hidden="true"
-                                    >open_in_new</mat-icon
-                                ></a
-                            >
-                        </dd>
-
-                        <!-- The one figure on this card that moves. -->
-                        <dt>
-                            {{ i18n.t("server.nextRound") }}
-                            <app-insight [label]="i18n.t('insight.nextRound.label')">
-                                {{ i18n.t("insight.nextRound") }}
-                            </app-insight>
-                        </dt>
-                        <dd class="live">
-                            @if (clock.running()) {
-                                {{ i18n.t("server.roundNow") }}
-                            } @else if (clock.untilStart(); as remaining) {
-                                {{ countdown(remaining) }}
-                            } @else {
-                                —
-                            }
-                        </dd>
-
-                        <dt>
-                            {{ i18n.t("server.network") }}
-                            <app-insight [label]="i18n.t('insight.network.label')">
-                                {{ i18n.t("insight.network") }}
-                            </app-insight>
-                        </dt>
-                        <dd>{{ info.network }}</dd>
-                        <dt>
-                            {{ i18n.t("server.dust") }}
-                            <app-insight [label]="i18n.t('insight.dust.label')">
-                                {{ i18n.t("insight.dust") }}
-                            </app-insight>
-                        </dt>
-                        <dd>{{ fmt(info.dust) }}</dd>
-                        <dt>
-                            {{ i18n.t("server.session") }}
-                            <app-insight [label]="i18n.t('insight.session.label')">
-                                {{ i18n.t("insight.session") }}
-                            </app-insight>
-                        </dt>
-                        <dd>
-                            {{ i18n.t("server.sessionValue", seconds(info.sessionDuration)) }}
-                        </dd>
-                        <dt>
-                            {{ i18n.t("server.exit") }}
-                            <app-insight [label]="i18n.t('insight.unilateralExit.label')">
-                                {{ i18n.t("server.exitHint") }}
-                            </app-insight>
-                        </dt>
-                        <dd>{{ exitDelay() }}</dd>
-                        <dt>
-                            {{ i18n.t("server.key") }}
-                            <app-insight [label]="i18n.t('insight.signerKey.label')">
-                                {{ i18n.t("insight.signerKey") }}
-                            </app-insight>
-                        </dt>
-                        <!-- In full, and wrapping. Truncating it looked tidy
-                             but made the one thing worth doing with it --
-                             checking it against the key inside your own address
-                             -- impossible. -->
-                        <dd class="mono key">{{ info.signerPubkey }}</dd>
-                    </dl>
-                </mat-card-content>
-            </mat-card>
-        }
     `,
     styles: `
         :host {
@@ -403,27 +312,6 @@ import { BoardingWatch } from "./boarding-watch";
             font-variant-numeric: tabular-nums;
         }
 
-        /*
-         * Separators are real borders, not gaps with the background showing
-         * through. The gap trick rounds to whole device pixels per row, so with
-         * rows of differing height one hairline came out visibly thicker than
-         * its neighbours. A border on each row after the first is exactly one
-         * pixel wherever it lands.
-         */
-        .server a {
-            color: var(--accent);
-            overflow-wrap: anywhere;
-        }
-
-        .server .key {
-            overflow-wrap: anywhere;
-            font-size: 12px;
-        }
-
-        .server .live {
-            font-variant-numeric: tabular-nums;
-        }
-
         .head-actions {
             display: flex;
             align-items: center;
@@ -441,6 +329,13 @@ import { BoardingWatch } from "./boarding-watch";
             overflow: hidden;
         }
 
+        /*
+         * Separators are real borders, not gaps with the background showing
+         * through. The gap trick rounds to whole device pixels per row, so with
+         * rows of differing height one hairline came out visibly thicker than
+         * its neighbours. A border on each row after the first is exactly one
+         * pixel wherever it lands.
+         */
         .buckets > div + div {
             border-top: 1px solid var(--border);
         }
@@ -645,47 +540,10 @@ import { BoardingWatch } from "./boarding-watch";
             color: var(--warning);
         }
 
-        .server {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            /*
-             * Aligned on the text baseline, not the top of the box. The signing
-             * key is set smaller so its 66 characters fit, and it wraps to two
-             * lines -- both of which pushed its first line off the line its own
-             * label sits on. Baselines put them back on the same line whatever
-             * the value's size or height.
-             */
-            align-items: baseline;
-            gap: 8px 20px;
-            margin: 0;
-            font-size: 13.5px;
-        }
-
-        /*
-         * Every question mark on one vertical line.
-         *
-         * The labels already share a grid column, so pushing the insight to the
-         * far edge of that column lands them all at the same x whatever the
-         * label says -- which also survives translation, where the label
-         * lengths change completely.
-         */
-        .server dt {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            color: var(--fg-muted);
-        }
-
-        .server dd {
-            margin: 0;
-            overflow-wrap: anywhere;
-        }
     `,
 })
 export class WalletOverview {
     readonly arkade = inject(ArkadeService);
-    readonly clock = inject(RoundClock);
     private readonly dialog = inject(MatDialog);
 
     /**
@@ -735,10 +593,6 @@ export class WalletOverview {
         void this.arkade.settle();
     }
 
-    countdown(ms: number): string {
-        return countdownText(ms);
-    }
-
     fmt(value: number | bigint): string {
         return this.i18n.sats(value);
     }
@@ -751,21 +605,9 @@ export class WalletOverview {
         return short(value, head, tail);
     }
 
-    /** The SDK reports durations as bigint; templates cannot narrow one. */
-    seconds(value: bigint | number): number {
-        return Number(value);
-    }
-
     /** `undefined` when there is no expiry to show, so the template can skip it. */
     expiry(expiresAt: number | undefined): string | undefined {
         if (expiresAt === undefined) return undefined;
         return this.i18n.duration(expiresAt - Date.now());
     }
-
-    /** Reads `i18n.locale()` through `duration`, so it re-renders on a switch. */
-    readonly exitDelay = computed(() => {
-        const info = this.arkade.serverInfo();
-        if (!info) return "";
-        return this.i18n.duration(Number(info.unilateralExitDelay) * 1000);
-    });
 }

@@ -65,9 +65,8 @@ export interface NetworkPreset {
 }
 
 /**
- * Signet is the default: the Arkade-operated deployment at `signet.arkade.sh`
- * is public, free, and its coins are worthless, which is exactly what you want
- * while learning.
+ * The deployments this app knows about. All are public, free, and hold coins
+ * that are worth nothing, which is exactly what you want while learning.
  */
 export const NETWORKS = {
     signet: {
@@ -115,6 +114,19 @@ export const NETWORKS = {
 /** Names of the presets this app ships with. */
 export type PresetName = keyof typeof NETWORKS;
 
+/**
+ * Where a run lands when `FIRSTSATS_NETWORK` says nothing.
+ *
+ * Mutinynet rather than signet, which held this spot for most of the project's
+ * life. The public signet deployment stopped completing batch rounds, and a
+ * default that cannot onboard teaches a newcomer that the app is broken.
+ * Mutinynet works, and its thirty-second blocks make every wait shorter --
+ * confirmations that would cost an hour on signet cost a couple of minutes.
+ *
+ * Signet is one environment variable away and nothing else changes.
+ */
+export const DEFAULT_NETWORK: PresetName = "mutinynet";
+
 export const PRESET_NAMES = Object.keys(NETWORKS) as PresetName[];
 
 /** Fully resolved configuration for one run of the app. */
@@ -160,7 +172,7 @@ export function resolveConfig(env: Env = ambientEnv()): AppConfig {
             `Unknown network "${requested}". Available: ${PRESET_NAMES.join(", ")}.`
         );
     }
-    const preset = NETWORKS[(requested ?? "signet") as PresetName];
+    const preset = NETWORKS[(requested ?? DEFAULT_NETWORK) as PresetName];
 
     const network: NetworkPreset = {
         ...preset,

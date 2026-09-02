@@ -19,6 +19,14 @@ import { ArkadeService } from "./arkade.service";
 /** How often to ask, while watching. Esplora is a shared public service. */
 const POLL_MS = 10_000;
 
+/**
+ * How long copying the address counts as expecting a payment.
+ *
+ * Long enough to cover finding a faucet, filling it in and waiting for it to
+ * send; short enough that a copy made and forgotten does not poll all day.
+ */
+const EXPECT_MS = 30 * 60_000;
+
 /** How often to re-ask about a transaction that has not been mined yet. */
 const RETRY_TX_MS = 30_000;
 
@@ -238,6 +246,8 @@ export class ChainService {
     private timer: ReturnType<typeof setInterval> | undefined;
     /** The block feed, when the network has one and it opened. */
     private socket: WebSocket | null = null;
+    /** When the current expectation lapses, or null if none was set. */
+    private expiresAt: number | null = null;
     /** Whether a watch is running, independent of which transport is up. */
     private watching = false;
     private known = new Set<string>();
@@ -344,7 +354,12 @@ export class ChainService {
             if (this.watching) {
                 const awaitingBlock = found.some((tx) => !tx.confirmed);
                 if (awaitingBlock && this.socketOpen()) this.idle();
-                else this.poll();
+                else if (found.length > 0 || this.expecting()) this.poll();
+                else {
+                    // Nothing here, and nobody is waiting for anything: an
+                    // expectation that lapsed with no payment stops asking.
+                    this.stop();
+                }
             }
 
             if (found.length === 0) {
@@ -440,6 +455,33 @@ export class ChainService {
         this.idle();
         this.closeSocket();
         if (this.status() === "watching") this.status.set("idle");
+    }
+
+    /**
+     * Watch because a payment has been asked for.
+     *
+     * Copying the boarding address is the moment someone decides to be paid at
+     * it, and it is the only way that address leaves the screen -- there is no
+     * QR for it. That makes the copy a better signal than a button asking the
+     * reader to predict their own future, and it removes the one control whose
+     * purpose could not be explained without contradicting itself.
+     *
+     * Held here rather than in the Receive screen because the wait outlives it:
+     * copy the address, switch to the wallet tab to watch the balance, and the
+     * component that started this is gone while the payment is still coming.
+     *
+     * Bounded, because an expectation is not a subscription. If nothing has
+     * arrived by then, a reload or a visit to the boarding panel asks again --
+     * both of which check on sight.
+     */
+    expect(): void {
+        this.expiresAt = Date.now() + EXPECT_MS;
+        this.start();
+    }
+
+    /** Whether an expectation is still live. */
+    private expecting(): boolean {
+        return this.expiresAt !== null && Date.now() < this.expiresAt;
     }
 
     /** Start the interval, unless one is already running. */

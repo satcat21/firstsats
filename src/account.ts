@@ -97,7 +97,12 @@ export type IncomingFundsLike =
     | { type: "utxo"; coins: Array<{ value: number }> }
     | {
           type: "vtxo";
-          newVtxos: Array<{ value: number }>;
+          /**
+           * `txid` is the transaction that created the output, which is how a
+           * front end tells its own change from somebody's payment: change is
+           * created by the transaction the wallet just sent.
+           */
+          newVtxos: Array<{ value: number; txid?: string }>;
           spentVtxos: Array<{ value: number }>;
       };
 

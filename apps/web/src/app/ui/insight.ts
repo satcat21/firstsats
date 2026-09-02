@@ -65,7 +65,13 @@ let nextId = 0;
             border-radius: 50%;
             border: 0;
             background: none;
-            color: var(--accent);
+            /*
+             * Accent blue by default, but a host that sits on its own colour
+             * can hand down currentColor instead -- view encapsulation puts
+             * this rule out of a parent stylesheet's reach, and a blue glyph
+             * inside a pink badge reads as a foreign object.
+             */
+            color: var(--insight-ink, var(--accent));
             line-height: 0;
             display: inline-flex;
             align-items: center;
