@@ -360,6 +360,12 @@ export const DE: Messages = {
 
     // --- strings the Material rebuild introduced -----------------------
     "send.addressHint": "Eine Arkade-Adresse, keine Onchain-Adresse",
+    "send.errNotArkade": "Das ist keine gültige Arkade-Adresse. Sie beginnen in Testnetzen mit tark1.",
+    "send.errOnchainInArkade":
+        "Das ist eine Onchain-Adresse. Wechsle zu Onchain auszahlen, um dorthin zu senden, oder füge hier eine Arkade-Adresse ein.",
+    "send.errNotOnchain": "Das sieht nicht nach einer Onchain-Adresse für dieses Netzwerk aus. Sie beginnen hier mit tb1.",
+    "send.errArkadeInWithdraw":
+        "Das ist eine Arkade-Adresse. Wechsle zu In Ark zahlen, um dorthin zu senden — eine Auszahlung braucht eine Onchain-Adresse.",
     "onboarding.seedHidden": "Verborgen, bis du sie anzeigst",
     "receive.chainWarning": "Das ist eine {0}-Adresse. Signet, Testnet3 und Testnet4 verwenden alle das Präfix tb1 — ein Faucet im falschen Netzwerk akzeptiert sie also, und die Coins landen auf einer Chain, die diese Wallet nicht beobachtet. Nutze ein {0}-Faucet.",
     "chain.toastMempool": "{0} im Mempool entdeckt — gesendet, wartet jetzt auf einen Block.",
@@ -563,6 +569,7 @@ export const DE: Messages = {
     "err.intentLost": "Die Batch-Runde war schon weiter, bevor diese Anmeldung angenommen wurde — der Server kennt sie deshalb nicht mehr. Es wurde nichts ausgegeben und nichts verloren. Drück den Knopf noch einmal, um in die nächste Runde zu kommen.",
     "wallet.groupArk": "In Ark · offchain",
     "wallet.groupChain": "Onchain",
+    "err.signingTimeout": "Diese Batch-Runde ist beim Einsammeln der Signaturen gescheitert: Der Server wartet ein kurzes Zeitfenster darauf, dass alle Teilnehmenden der Runde ihren Teil schicken, und dieses ist ohne sie abgelaufen. Es wurde nichts ausgegeben und nichts verloren — die Runde hat überhaupt keine Transaktion erzeugt. Drück den Knopf noch einmal, um an der nächsten teilzunehmen.",
     "err.roundAbandoned": "Diese Batch-Runde wurde verworfen: Der Server bricht eine Runde ab, wenn nicht genug Bestätigungen innerhalb des Zeitfensters eintreffen — das passiert, wenn eine Anmeldung erst nach dem Start der Runde ankommt. Es wurde nichts ausgegeben und nichts verloren; deine Coins sind genau dort, wo sie waren. Drück den Knopf noch einmal, dann wird auf eine Lücke zwischen zwei Runden gewartet.",
     "onboardDlg.attempt": "Runde {0} von {1} — die letzte hat der Server verworfen",
     "wallet.showPhrase": "Wiederherstellungsphrase",

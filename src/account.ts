@@ -266,6 +266,28 @@ function explainSettlement(cause: unknown): never {
             { key: "err.roundAbandoned" }
         );
     }
+    /*
+     * The round got as far as signing and then nobody turned up.
+     *
+     * A batch tree is signed with MuSig2, which needs a nonce from every
+     * participant before any of them can sign. The server gives that collection
+     * a window, and `collected 0/2 nonces` says the window closed with none of
+     * them in -- so the tree was never signed and the round produced nothing.
+     *
+     * Same shape as an abandoned round: no input was spent, because a forfeit
+     * is only valid against a commitment transaction that confirms and this one
+     * was never built. The next round is a fresh start.
+     */
+    if (/SIGNING_SESSION_TIMED_OUT|signing session timed out|nonce/i.test(text)) {
+        throw new PaymentError(
+            "That batch round failed while its signatures were being collected: the " +
+                "server waits a short window for every participant in the round to send " +
+                "their part, and this one closed without them. Nothing was spent and " +
+                "nothing was lost -- the round produced no transaction at all. Press the " +
+                "button again to join the next one.",
+            { key: "err.signingTimeout" }
+        );
+    }
     if (isUnseenBoarding(cause)) {
         throw new PaymentError(
             "The Arkade server still has not seen that confirmation. It watches the chain " +
@@ -1069,6 +1091,80 @@ export function arkAddressParts(address: string): AddressParts | null {
 
 function toHex(bytes: Uint8Array): string {
     return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Whether this decodes as an arkade address.
+ *
+ * Authoritative -- it is the SDK's own decoder, checksum and all. The predicate
+ * exists so a form can ask the question without catching an exception, and so
+ * both front ends judge an address the same way the payment will.
+ */
+export function isArkadeAddress(address: string): boolean {
+    return arkAddressParts(address) !== null;
+}
+
+/**
+ * On-chain address prefixes, per network preset.
+ *
+ * Signet and mutinynet are both signet-family and share testnet's `tb1`.
+ */
+const ONCHAIN_PREFIXES: Record<string, readonly string[]> = {
+    bitcoin: ["bc1"],
+    signet: ["tb1"],
+    mutinynet: ["tb1"],
+    regtest: ["bcrt1"],
+};
+
+/** Base58 leading characters for the legacy forms each network still accepts. */
+const LEGACY_PREFIXES: Record<string, readonly string[]> = {
+    bitcoin: ["1", "3"],
+    signet: ["m", "n", "2"],
+    mutinynet: ["m", "n", "2"],
+    regtest: ["m", "n", "2"],
+};
+
+/** bech32's alphabet: no `1`, `b`, `i` or `o`, so they cannot be misread. */
+const BECH32_CHARSET = /^[qpzry9x8gf2tvdw0s3jn54khce6mua7l]+$/;
+
+/**
+ * Whether this looks like an on-chain address on the given network.
+ *
+ * Shape only: prefix, alphabet and length. It deliberately does not verify the
+ * bech32 checksum, which would need a decoder this project does not otherwise
+ * depend on -- so a single mistyped character passes here and is caught by the
+ * server instead.
+ *
+ * That is the right trade for what this is for. The mistake worth catching in a
+ * form is the *wrong kind* of address -- an arkade address in the withdrawal
+ * field, or a mainnet address on a testnet build -- and those are wrong by
+ * prefix, which this does catch. Being stricter risks rejecting a valid address
+ * the app has simply never seen, which is a worse failure than a round trip to
+ * the server.
+ */
+export function isOnchainAddress(address: string, network: string): boolean {
+    const trimmed = address.trim();
+    if (trimmed.length === 0) return false;
+
+    // An arkade address is never an on-chain one, whatever else it looks like.
+    if (isArkadeAddress(trimmed)) return false;
+
+    const lower = trimmed.toLowerCase();
+    const bech32 = ONCHAIN_PREFIXES[network] ?? [];
+    for (const prefix of bech32) {
+        if (!lower.startsWith(prefix)) continue;
+        // The prefix already carries the `1` separator, so what follows is data.
+        const data = lower.slice(prefix.length);
+        // 39 is a P2WPKH payload; the ceiling leaves room for future versions.
+        return data.length >= 30 && data.length <= 71 && BECH32_CHARSET.test(data);
+    }
+
+    const legacy = LEGACY_PREFIXES[network] ?? [];
+    if (legacy.some((prefix) => trimmed.startsWith(prefix))) {
+        return trimmed.length >= 26 && trimmed.length <= 35;
+    }
+
+    return false;
 }
 
 export function assertArkadeAddress(address: string): void {

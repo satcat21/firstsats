@@ -360,6 +360,12 @@ export const FR: Messages = {
 
     // --- strings the Material rebuild introduced -----------------------
     "send.addressHint": "Une adresse arkade, pas une adresse on-chain",
+    "send.errNotArkade": "Ce n'est pas une adresse arkade valide. Sur les réseaux de test elles commencent par tark1.",
+    "send.errOnchainInArkade":
+        "C'est une adresse on-chain. Passez à Retirer on-chain pour y envoyer, ou collez ici une adresse arkade.",
+    "send.errNotOnchain": "Cela ne ressemble pas à une adresse on-chain pour ce réseau. Ici elles commencent par tb1.",
+    "send.errArkadeInWithdraw":
+        "C'est une adresse arkade. Passez à Payer en Ark pour y envoyer — un retrait exige une adresse on-chain.",
     "onboarding.seedHidden": "Masquée jusqu'à ce que vous l'affichiez",
     "receive.chainWarning": "Ceci est une adresse {0}. Signet, testnet3 et testnet4 utilisent tous le préfixe tb1 : un robinet sur le mauvais réseau l'acceptera et les pièces atterriront sur une chaîne que ce portefeuille ne surveille pas. Utilisez un robinet {0}.",
     "chain.toastMempool": "{0} repérés dans le mempool — diffusé, en attente d'un bloc.",
@@ -563,6 +569,7 @@ export const FR: Messages = {
     "err.intentLost": "Le tour de lot a continué avant que cet enregistrement soit accepté : le serveur ne le reconnaît donc plus. Rien n'a été dépensé ni perdu. Réappuyez sur le bouton pour rejoindre le prochain tour.",
     "wallet.groupArk": "Dans Ark · hors chaîne",
     "wallet.groupChain": "On-chain",
+    "err.signingTimeout": "Ce tour de lot a échoué pendant la collecte des signatures : le serveur attend une courte fenêtre que chaque participant du tour envoie sa part, et celle-ci s'est refermée sans elles. Rien n'a été dépensé ni perdu — le tour n'a produit aucune transaction. Réappuyez sur le bouton pour rejoindre le suivant.",
     "err.roundAbandoned": "Ce tour de lot a été abandonné : le serveur annule un tour lorsqu'il ne reçoit pas assez de confirmations dans la fenêtre, ce qui arrive quand un enregistrement arrive après le début du tour. Rien n'a été dépensé ni perdu — vos pièces sont là où elles étaient. Réappuyez sur le bouton : il attendra un intervalle entre deux tours avant de réessayer.",
     "onboardDlg.attempt": "Tour {0} sur {1} — le serveur a abandonné le précédent",
     "wallet.showPhrase": "Phrase de récupération",

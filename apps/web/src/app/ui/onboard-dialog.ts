@@ -369,8 +369,24 @@ export interface OnboardData {
             overflow-wrap: anywhere;
         }
 
+        /*
+         * A block, not a stray line of text.
+         *
+         * It reads as a value you might copy rather than as the tail of the
+         * sentence above it, and the break-all stays as the fallback for a
+         * viewport too narrow to hold 64 characters however wide the dialog is
+         * allowed to be.
+         */
         .txid {
-            font-size: 12px;
+            margin: 10px 0 0;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--fg-muted);
+            font-size: 11.5px;
+            line-height: 1.5;
+            text-align: center;
             word-break: break-all;
         }
     `,
@@ -462,5 +478,8 @@ export class OnboardDialog {
  * promise for a click handler that has nowhere to put it.
  */
 export function openOnboardDialog(dialog: MatDialog, data: OnboardData): void {
-    dialog.open(OnboardDialog, { width: "min(500px, calc(100vw - 32px))", data });
+    // Wide enough for a 64-character transaction id to sit on one line at the
+    // size below. At 500px it wrapped after 62 characters, leaving two digits
+    // stranded on a line of their own.
+    dialog.open(OnboardDialog, { width: "min(580px, calc(100vw - 32px))", data });
 }

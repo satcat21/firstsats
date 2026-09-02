@@ -11,6 +11,8 @@ import { describe, expect, it } from "vitest";
 import {
     arkAddressParts,
     FirstSatsAccount,
+    isArkadeAddress,
+    isOnchainAddress,
     PaymentError,
     toMillis,
     toPaymentView,
@@ -254,6 +256,53 @@ describe("arkAddressParts", () => {
 
     it("returns null for something that is not an address", () => {
         expect(arkAddressParts("definitely not an address")).toBeNull();
+    });
+});
+
+/**
+ * The two the Send form asks before it will let a payment be submitted. They
+ * decide which of two fields an address belongs in, so getting them wrong sends
+ * somebody down the wrong flow entirely.
+ */
+describe("address kind", () => {
+    const arkade = new ArkAddress(
+        new Uint8Array(32).fill(0xab),
+        new Uint8Array(32).fill(0xcd),
+        "tark"
+    ).encode();
+
+    // A real signet faucet address, and the one this app is most often paid to.
+    const onchain = "tb1qmt3ue2senlg6ddgmr76hwsk0rdvdk4rgeaen7l";
+
+    it("tells the two kinds apart", () => {
+        expect(isArkadeAddress(arkade)).toBe(true);
+        expect(isArkadeAddress(onchain)).toBe(false);
+
+        expect(isOnchainAddress(onchain, "signet")).toBe(true);
+        expect(isOnchainAddress(arkade, "signet")).toBe(false);
+    });
+
+    it("shares tb1 between signet and mutinynet, which are both signet", () => {
+        expect(isOnchainAddress(onchain, "mutinynet")).toBe(true);
+        // The prefix is what separates the chains a browser can reach from the
+        // one it cannot, and from mainnet.
+        expect(isOnchainAddress(onchain, "regtest")).toBe(false);
+        expect(isOnchainAddress(onchain, "bitcoin")).toBe(false);
+    });
+
+    it("rejects a mainnet address on a test network", () => {
+        // The mistake that costs real money, so it is worth a test of its own.
+        expect(
+            isOnchainAddress("bc1qmt3ue2senlg6ddgmr76hwsk0rdvdk4rgm0uzgn", "signet")
+        ).toBe(false);
+    });
+
+    it("rejects empty and obviously malformed input", () => {
+        expect(isOnchainAddress("", "signet")).toBe(false);
+        expect(isOnchainAddress("   ", "signet")).toBe(false);
+        expect(isArkadeAddress("")).toBe(false);
+        // `b`, `i` and `o` are not in bech32's alphabet.
+        expect(isOnchainAddress("tb1bio", "signet")).toBe(false);
     });
 });
 

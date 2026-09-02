@@ -360,6 +360,12 @@ export const IT: Messages = {
 
     // --- strings the Material rebuild introduced -----------------------
     "send.addressHint": "Un indirizzo arkade, non uno on-chain",
+    "send.errNotArkade": "Non è un indirizzo arkade valido. Sulle reti di test iniziano con tark1.",
+    "send.errOnchainInArkade":
+        "Questo è un indirizzo on-chain. Passa a Preleva on-chain per inviare lì, o incolla qui un indirizzo arkade.",
+    "send.errNotOnchain": "Non sembra un indirizzo on-chain per questa rete. Qui iniziano con tb1.",
+    "send.errArkadeInWithdraw":
+        "Questo è un indirizzo arkade. Passa a Paga in Ark per inviare lì: un prelievo richiede un indirizzo on-chain.",
     "onboarding.seedHidden": "Nascosta finché non la mostri",
     "receive.chainWarning": "Questo è un indirizzo {0}. Signet, testnet3 e testnet4 usano tutti il prefisso tb1, quindi un faucet sulla rete sbagliata lo accetterà e le monete finiranno su una catena che questo portafoglio non osserva. Usa un faucet {0}.",
     "chain.toastMempool": "{0} avvistati nel mempool — trasmesso, ora aspetta un blocco.",
@@ -563,6 +569,7 @@ export const IT: Messages = {
     "err.intentLost": "Il giro di batch è andato avanti prima che questa registrazione fosse accettata, quindi il server non la riconosce più. Non è stato speso né perso nulla. Premi di nuovo il pulsante per entrare nel prossimo giro.",
     "wallet.groupArk": "In Ark · fuori catena",
     "wallet.groupChain": "On-chain",
+    "err.signingTimeout": "Quel giro di batch è fallito mentre si raccoglievano le firme: il server aspetta una breve finestra che ogni partecipante al giro mandi la sua parte, e questa si è chiusa senza. Non è stato speso né perso nulla: il giro non ha prodotto alcuna transazione. Premi di nuovo il pulsante per entrare nel prossimo.",
     "err.roundAbandoned": "Quel giro di batch è stato scartato: il server abbandona un giro quando non riceve abbastanza conferme entro la finestra, cosa che accade se la registrazione arriva a giro già iniziato. Non è stato speso né perso nulla: le tue monete sono dov'erano. Premi di nuovo il pulsante e aspetterà una pausa fra due giri prima di riprovare.",
     "onboardDlg.attempt": "Giro {0} di {1} — il server ha abbandonato il precedente",
     "wallet.showPhrase": "Frase di recupero",

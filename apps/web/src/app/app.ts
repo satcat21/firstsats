@@ -364,8 +364,18 @@ import { firstValueFrom } from "rxjs";
          * No bottom margin of its own -- the host's padding is the whole gap to
          * the page edge, so there is one number to change rather than two.
          */
+        /*
+         * Pushed to the bottom of the viewport when the page is short.
+         *
+         * An auto top margin against the host's flex column, not a fixed
+         * position: a fixed footer would sit on top of the content once there
+         * is enough of it to scroll, and the whole point of this line is that
+         * it stays out of the way. This way it is the last item in normal flow,
+         * and the spare height above it -- if there is any -- moves it down.
+         */
         .colophon {
-            margin: 28px 0 0;
+            margin: auto 0 0;
+            padding-top: 28px;
             text-align: center;
             font-size: 12.5px;
             line-height: 1.7;
@@ -396,8 +406,16 @@ import { firstValueFrom } from "rxjs";
             color: var(--danger);
         }
 
+        /*
+         * A column at least as tall as the viewport, so the colophon has spare
+         * height to be pushed into. Without it a page holding one card left the
+         * footer stranded halfway up, under the content rather than at the
+         * bottom of the window.
+         */
         :host {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
             max-width: 860px;
             margin: 0 auto;
             /*

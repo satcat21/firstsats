@@ -36,6 +36,14 @@ import { type Profile, ProfileService } from "./profile.service";
 
 export type Status = "no-wallet" | "connecting" | "ready" | "error";
 
+/** A payment that has been submitted and has not finished. */
+export interface PendingPayment {
+    readonly destination: string;
+    /** Zero for a withdrawal, which moves everything rather than an amount. */
+    readonly amount: number;
+    readonly withdrawing: boolean;
+}
+
 /**
  * A failure, kept in both forms.
  *
@@ -84,14 +92,18 @@ const ROUND_ATTEMPTS = 3;
 /**
  * Whether a failure is the round falling over rather than a refusal.
  *
- * Both of these mean the round this registration was in did not complete, for
- * reasons no client can influence, and both are answered by trying the next
+ * All three mean the round this registration was in did not complete, for
+ * reasons no client can influence, and all are answered by trying the next
  * one. Anything else is a real answer and must be shown.
  */
 function isRoundRetryable(cause: unknown): boolean {
     if (!(cause instanceof PaymentError)) return false;
     const key = cause.i18n?.key;
-    return key === "err.roundAbandoned" || key === "err.intentLost";
+    return (
+        key === "err.roundAbandoned" ||
+        key === "err.intentLost" ||
+        key === "err.signingTimeout"
+    );
 }
 
 /**
@@ -131,6 +143,16 @@ export class ArkadeService {
     // ---- state ---------------------------------------------------------
     readonly status = signal<Status>("connecting");
     readonly busy = signal<string | null>(null);
+
+    /**
+     * The payment in flight, or null when there is none.
+     *
+     * Held here rather than in the Send form because the form does not outlive
+     * a tab change and the payment does -- a withdrawal is two batch rounds,
+     * which is minutes. A form rebuilt empty and enabled over a payment still
+     * running says the opposite of what is true, and invites a second one.
+     */
+    readonly pending = signal<PendingPayment | null>(null);
 
     private readonly i18n = inject(I18nService);
     /**
@@ -627,20 +649,29 @@ export class ArkadeService {
      * @returns the Arkade transaction id.
      */
     async send(address: string, amount: number): Promise<string> {
-        const txid = await this.run("send", (account) =>
-            account.send(address.trim(), amount)
-        );
-        /*
-         * Remembered so the change can be recognised when it lands.
-         *
-         * The subscription reports new outputs on this wallet's scripts, and a
-         * payment's change is one of those -- indistinguishable from money
-         * arriving unless you know which transaction created it. This wallet
-         * created that transaction, so it does.
-         */
-        this.lastSend = { txid, amount };
-        await this.refresh();
-        return txid;
+        this.pending.set({
+            destination: address.trim(),
+            amount,
+            withdrawing: false,
+        });
+        try {
+            const txid = await this.run("send", (account) =>
+                account.send(address.trim(), amount)
+            );
+            /*
+             * Remembered so the change can be recognised when it lands.
+             *
+             * The subscription reports new outputs on this wallet's scripts, and
+             * a payment's change is one of those -- indistinguishable from money
+             * arriving unless you know which transaction created it. This wallet
+             * created that transaction, so it does.
+             */
+            this.lastSend = { txid, amount };
+            await this.refresh();
+            return txid;
+        } finally {
+            this.pending.set(null);
+        }
     }
 
     /**
@@ -692,6 +723,19 @@ export class ArkadeService {
      * the whole withdrawal rather than delay that one output.
      */
     async offboard(destination: string): Promise<string> {
+        this.pending.set({
+            destination: destination.trim(),
+            amount: 0,
+            withdrawing: true,
+        });
+        try {
+            return await this.runOffboard(destination);
+        } finally {
+            this.pending.set(null);
+        }
+    }
+
+    private async runOffboard(destination: string): Promise<string> {
         /*
          * Boarding funds first, and as a round of their own.
          *

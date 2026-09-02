@@ -361,6 +361,12 @@ export const EN = {
 
     // --- strings the Material rebuild introduced -----------------------
     "send.addressHint": "An arkade address, not an on-chain one",
+    "send.errNotArkade": "That is not a valid arkade address. They start with tark1 on test networks.",
+    "send.errOnchainInArkade":
+        "That is an on-chain address. Switch to Withdraw on-chain to send there, or paste an arkade address here.",
+    "send.errNotOnchain": "That does not look like an on-chain address for this network. They start with tb1 here.",
+    "send.errArkadeInWithdraw":
+        "That is an arkade address. Switch to Pay in Ark to send there — a withdrawal needs an on-chain address.",
     "onboarding.seedHidden": "Hidden until you reveal it",
     "receive.chainWarning": "This is a {0} address. Signet, testnet3 and testnet4 all use the tb1 prefix, so a faucet on the wrong network will accept it and the coins will land on a chain this wallet does not watch. Use a {0} faucet.",
     "chain.toastMempool": "{0} spotted in the mempool — published, now waiting for a block.",
@@ -564,6 +570,7 @@ export const EN = {
     "err.intentLost": "The batch round moved on before this registration was accepted, so the server no longer recognises it. Nothing was spent and nothing was lost. Press the button again to join the next round.",
     "wallet.groupArk": "In Ark · off-chain",
     "wallet.groupChain": "On-chain",
+    "err.signingTimeout": "That batch round failed while its signatures were being collected: the server waits a short window for every participant in the round to send their part, and this one closed without them. Nothing was spent and nothing was lost — the round produced no transaction at all. Press the button again to join the next one.",
     "err.roundAbandoned": "That batch round was dropped: the server abandons a round when it does not get enough confirmations inside the window, which happens when a registration lands after the round has already started. Nothing was spent and nothing was lost — your coins are exactly where they were. Press the button again and it will wait for a gap between rounds before trying.",
     "onboardDlg.attempt": "Round {0} of {1} — the last one was abandoned by the server",
     "wallet.showPhrase": "Recovery phrase",

@@ -359,6 +359,12 @@ export const PT: Messages = {
 
     // --- strings the Material rebuild introduced -----------------------
     "send.addressHint": "Um endereço arkade, não um on-chain",
+    "send.errNotArkade": "Esse não é um endereço arkade válido. Nas redes de teste começam por tark1.",
+    "send.errOnchainInArkade":
+        "Esse é um endereço on-chain. Muda para Levantar on-chain para enviar para lá, ou cola aqui um endereço arkade.",
+    "send.errNotOnchain": "Isso não parece um endereço on-chain para esta rede. Aqui começam por tb1.",
+    "send.errArkadeInWithdraw":
+        "Esse é um endereço arkade. Muda para Pagar em Ark para enviar para lá — um levantamento precisa de um endereço on-chain.",
     "onboarding.seedHidden": "Oculta até a mostrares",
     "receive.chainWarning": "Este é um endereço {0}. A signet, a testnet3 e a testnet4 usam todas o prefixo tb1, por isso uma torneira na rede errada aceita-o e as moedas caem numa cadeia que esta carteira não observa. Usa uma torneira {0}.",
     "chain.toastMempool": "{0} detetados no mempool — difundido, agora à espera de um bloco.",
@@ -562,6 +568,7 @@ export const PT: Messages = {
     "err.intentLost": "A ronda de lote avançou antes de este registo ser aceite, por isso o servidor já não o reconhece. Não se gastou nem se perdeu nada. Carrega outra vez no botão para entrar na próxima ronda.",
     "wallet.groupArk": "No Ark · fora da cadeia",
     "wallet.groupChain": "On-chain",
+    "err.signingTimeout": "Essa ronda de lote falhou enquanto se recolhiam as assinaturas: o servidor espera uma janela curta para que cada participante da ronda envie a sua parte, e esta fechou sem elas. Não se gastou nem se perdeu nada — a ronda não produziu transação nenhuma. Carrega outra vez no botão para entrar na seguinte.",
     "err.roundAbandoned": "Essa ronda de lote foi descartada: o servidor abandona uma ronda quando não recebe confirmações suficientes dentro da janela, o que acontece se o registo chegar com a ronda já a decorrer. Não se gastou nem se perdeu nada — as tuas moedas estão onde estavam. Carrega outra vez no botão e ele espera por um intervalo entre rondas antes de tentar.",
     "onboardDlg.attempt": "Ronda {0} de {1} — o servidor descartou a anterior",
     "wallet.showPhrase": "Frase de recuperação",

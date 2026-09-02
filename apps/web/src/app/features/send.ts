@@ -12,19 +12,22 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonToggleModule } from "@angular/material/button-toggle";
 import { MatInputModule } from "@angular/material/input";
-import { short } from "@firstsats/core";
+import { isArkadeAddress, isOnchainAddress, short } from "@firstsats/core";
 import { ArkadeService } from "../core/arkade.service";
 import { ChainService, type SettlementFacts } from "../core/chain.service";
 import { I18nService } from "../core/i18n.service";
+import type { Messages } from "../core/messages";
 import { Insight } from "../ui/insight";
 
 /**
  * Sending money.
  *
  * The address and amount are checked by `FirstSatsAccount.send` — the same code
- * the CLI runs — rather than by form validators here, so the browser cannot
- * drift away from the rules the terminal enforces. The form's own validation is
- * limited to what a form can know: that the fields are filled in at all.
+ * the CLI runs — so the browser cannot drift away from the rules the terminal
+ * enforces. The form checks the address as it is typed as well, using the same
+ * core predicates, because the mistake worth catching early is putting the right
+ * address in the wrong field: that one is rejected a batch round later, by which
+ * time the reader has no idea which of the two fields was at fault.
  */
 @Component({
     selector: "app-send",
@@ -52,10 +55,15 @@ import { Insight } from "../ui/insight";
                     different rules, and putting them behind one address field
                     is how people end up paying the wrong kind of address.
                 -->
+                <!-- Locked while a payment runs, like the fields below it. The
+                     mode decides which of two very different operations is in
+                     flight, and switching it mid-payment described the wrong
+                     one. -->
                 <mat-button-toggle-group
                     class="mode"
                     [hideSingleSelectionIndicator]="true"
                     [value]="mode()"
+                    [disabled]="sending()"
                     (valueChange)="setMode($event)"
                     [attr.aria-label]="i18n.t('send.heading')"
                 >
@@ -130,7 +138,8 @@ import { Insight } from "../ui/insight";
                                         ? i18n.t('send.withdrawPlaceholder')
                                         : i18n.t('send.addressPlaceholder')
                                 "
-                                [(ngModel)]="address"
+                                [value]="shownAddress()"
+                                (input)="address.set($any($event.target).value)"
                                 [disabled]="sending()"
                             />
                             <mat-hint>
@@ -145,6 +154,16 @@ import { Insight } from "../ui/insight";
                             </mat-hint>
                         </mat-form-field>
 
+                        <!-- Its own line rather than a mat-error: these inputs
+                             carry no form control, so the field has no error
+                             state for Material to render. -->
+                        @if (addressProblem(); as problem) {
+                            <p class="field-error" role="alert">
+                                <mat-icon aria-hidden="true">error</mat-icon>
+                                {{ i18n.t(problem) }}
+                            </p>
+                        }
+
                         @if (!withdrawing()) {
                         <mat-form-field appearance="outline" class="field">
                             <mat-label>{{ i18n.t("send.amountLabel") }}</mat-label>
@@ -157,7 +176,8 @@ import { Insight } from "../ui/insight";
                                 step="1"
                                 inputmode="numeric"
                                 class="mono"
-                                [(ngModel)]="amount"
+                                [value]="shownAmount()"
+                                (input)="amount.set(+$any($event.target).value)"
                                 [disabled]="sending()"
                             />
                             <span matTextSuffix class="suffix">
@@ -198,7 +218,12 @@ import { Insight } from "../ui/insight";
                             matButton="filled"
                             class="submit"
                             type="submit"
-                            [disabled]="sending() || !address() || (!withdrawing() && amount() <= 0)"
+                            [disabled]="
+                                sending() ||
+                                !address() ||
+                                addressProblem() !== null ||
+                                (!withdrawing() && amount() <= 0)
+                            "
                         >
                             <!-- One icon node swapped by name; a mat-icon inside
                                  @if/@else beside text never reaches the slot. -->
@@ -378,6 +403,29 @@ import { Insight } from "../ui/insight";
             color: var(--danger);
             flex: none;
         }
+
+        /*
+         * Tucked under the field it belongs to, in the space the hint occupies,
+         * so it reads as a note on that input rather than as a failure of the
+         * whole form -- which is what the .error block above is for.
+         */
+        .field-error {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            margin: -10px 0 14px;
+            color: var(--danger);
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+
+        .field-error .mat-icon {
+            flex: none;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+        }
     `,
 })
 export class Send {
@@ -417,26 +465,120 @@ export class Send {
 
     readonly address = signal("");
     readonly amount = signal(1000);
-    readonly sending = signal(false);
     readonly sentTxid = signal<string | null>(null);
+
+    /**
+     * Read from the wallet, not kept here.
+     *
+     * This component is destroyed and rebuilt every time the tab changes, so a
+     * local flag reported "idle" the moment you looked away and back -- an
+     * empty, enabled form over a payment that was still running. The wallet
+     * outlives the tab and knows the truth.
+     */
+    readonly sending = computed(() => this.arkade.pending() !== null);
+
+    /*
+     * What the fields show.
+     *
+     * While a payment is in flight the values come from the wallet, not from
+     * this component: the tab body is an @case, so switching away destroys the
+     * form and everything typed into it, and a rebuilt form showed a disabled,
+     * empty field over a payment that was very much still running. Reading
+     * through to the wallet means the display cannot drift from it -- there is
+     * no local copy left to lose, or to be cleared by something else.
+     *
+     * They fall back to the local signals the moment the payment finishes, so
+     * the form goes back to being an ordinary form.
+     *
+     * Bound with a plain [value] and (input) rather than through ngModel. Two
+     * attempts to restore these values into ngModel on rebuild were silently
+     * undone somewhere in its initialisation -- the disabled state applied and
+     * the value did not -- and a direct property binding has no such seam: the
+     * DOM shows what the computed says, every render.
+     */
+    readonly shownAddress = computed(
+        () => this.arkade.pending()?.destination ?? this.address()
+    );
+
+    readonly shownAmount = computed(() => {
+        const flight = this.arkade.pending();
+        // A withdrawal moves everything and carries no amount of its own.
+        return flight && !flight.withdrawing ? flight.amount : this.amount();
+    });
+
+    /**
+     * What is wrong with the address typed so far, or null.
+     *
+     * Checked as it is typed rather than on submit, because the mistake this
+     * catches is putting the right address in the wrong field -- and the reader
+     * who does that has no reason to suspect it until something rejects them a
+     * batch round later. Silent while the field is empty or a payment is
+     * running: an error over a field somebody has not filled in yet is a
+     * complaint about nothing.
+     */
+    readonly addressProblem = computed<keyof Messages | null>(() => {
+        if (this.sending()) return null;
+        const typed = this.address().trim();
+        if (typed.length === 0) return null;
+
+        if (this.withdrawing()) {
+            if (isArkadeAddress(typed)) return "send.errArkadeInWithdraw";
+            return isOnchainAddress(typed, this.arkade.network.name)
+                ? null
+                : "send.errNotOnchain";
+        }
+
+        if (isOnchainAddress(typed, this.arkade.network.name)) {
+            return "send.errOnchainInArkade";
+        }
+        return isArkadeAddress(typed) ? null : "send.errNotArkade";
+    });
 
     readonly short = short;
 
+    constructor() {
+        // Rebuilt over a payment in flight: open on the mode that started it,
+        // so the form on screen is the one the payment belongs to. The values
+        // come from shownAddress and shownAmount.
+        const flight = this.arkade.pending();
+        if (flight) this.mode.set(flight.withdrawing ? "withdraw" : "offchain");
+    }
+
     setMode(mode: "offchain" | "withdraw"): void {
+        /*
+         * Only on an actual change.
+         *
+         * The toggle group emits valueChange while it initialises from its own
+         * [value] binding, so every rebuild of this tab called this with the
+         * mode it already had -- and the reset below then wiped the destination
+         * of a payment still in flight, a moment after the constructor had
+         * restored it. Amount survived, which is what made it look like the
+         * address alone was being lost.
+         */
+        if (mode === this.mode()) return;
         this.mode.set(mode);
         // The two take different kinds of address; carrying one over is the
-        // mistake this split exists to prevent.
-        this.address.set("");
+        // mistake this split exists to prevent. The receipt goes with it: it
+        // belongs to the mode that produced it, and left standing it blocked
+        // the form on both sides of the switch.
+        this.reset();
     }
 
     async submit(): Promise<void> {
-        this.sending.set(true);
         const destination = this.address();
         try {
             const txid = this.withdrawing()
                 ? await this.arkade.offboard(destination)
                 : await this.arkade.send(destination, this.amount());
             this.sentTxid.set(txid);
+            /*
+             * The destination has done its job. Cleared on success only: a
+             * payment that failed is one the reader is most likely about to
+             * try again, and retyping an address they just typed -- to a
+             * wallet that has not moved -- would be a punishment for the
+             * server's bad day.
+             */
+            this.address.set("");
 
             /*
              * What it actually cost, once there is a transaction to read it
@@ -445,14 +587,16 @@ export class Send {
              * unindexed explorer should not hold the confirmation on screen.
              */
             if (this.withdrawing()) {
-                void this.chain
-                    .settlement(txid, destination)
-                    .then((facts) => this.settlement.set(facts));
+                void this.chain.settlement(txid, destination).then((facts) => {
+                    // Only if this is still the withdrawal on screen. The
+                    // lookup outlives the panel now that it clears itself, and
+                    // facts from a previous withdrawal appearing under a later
+                    // one would be worse than not showing them at all.
+                    if (this.sentTxid() === txid) this.settlement.set(facts);
+                });
             }
         } catch {
             // Surfaced through arkade.errorFrom() in the template.
-        } finally {
-            this.sending.set(false);
         }
     }
 

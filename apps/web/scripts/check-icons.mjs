@@ -29,6 +29,8 @@ const NOT_ICONS = new Set([
     "auto", "static", "empty", "awaiting", "quest", "free",
     "onboard", "arrival", "exit", "ark", "deposit", "sweep", "moved",
     "settled", "preconfirmed", "waiting", "unconfirmed",
+    // The Send tab's two modes, which a ternary makes look like icon names.
+    "offchain", "withdraw",
 ]);
 
 /** Every `.ts` under a directory, recursively. */
