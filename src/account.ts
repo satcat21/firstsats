@@ -102,7 +102,7 @@ export type IncomingFundsLike =
            * front end tells its own change from somebody's payment: change is
            * created by the transaction the wallet just sent.
            */
-          newVtxos: Array<{ value: number; txid?: string }>;
+          newVtxos: Array<{ value: number; txid?: string; vout?: number }>;
           spentVtxos: Array<{ value: number }>;
       };
 

@@ -90,6 +90,18 @@ const AFTER_SETTLE_MS = 4_000;
 const ROUND_ATTEMPTS = 3;
 
 /**
+ * How many arrived outputs to remember for the purpose of not announcing one
+ * twice.
+ *
+ * The subscription can report the same VTXO more than once -- a change output
+ * turns up when the transaction is submitted and again when the server has it
+ * -- and each report was a separate notification. Only enough to cover a
+ * session's recent arrivals is needed, so the oldest key is dropped once the
+ * set is full rather than letting a long-lived tab accumulate them forever.
+ */
+const SEEN_VTXOS = 200;
+
+/**
  * Whether a failure is the round falling over rather than a refusal.
  *
  * All three mean the round this registration was in did not complete, for
@@ -253,6 +265,23 @@ export class ArkadeService {
     private stopListening: (() => void) | null = null;
     /** The last payment this wallet made, until its change has been accounted for. */
     private lastSend: { txid: string; amount: number } | null = null;
+    /**
+     * Outputs already announced, as `txid:vout`.
+     *
+     * The server reports an arrival more than once, so without this the same
+     * change is narrated twice.
+     */
+    private readonly seen = new Set<string>();
+    /**
+     * Set for the whole of `send`, because `lastSend` cannot be.
+     *
+     * The txid that identifies the change is only known once the send resolves,
+     * but the server announces the change before that -- so an arrival landing
+     * mid-send is unclassifiable, and was narrated as a stranger's payment.
+     * Arrivals are held here instead and replayed once the txid is known.
+     */
+    private sending = false;
+    private held: IncomingFundsLike[] = [];
 
     constructor() {
         this.narrator.on((step) => {
@@ -491,7 +520,11 @@ export class ArkadeService {
 
         try {
             this.stopListening = await wallet.notifyIncomingFunds((funds) => {
-                this.announce(funds as IncomingFundsLike);
+                const incoming = funds as IncomingFundsLike;
+                // Balances are never held back; only the narration waits for
+                // the txid that says whose money this is.
+                if (this.sending) this.held.push(incoming);
+                else this.announce(incoming);
                 void this.refresh();
             });
         } catch {
@@ -507,10 +540,16 @@ export class ArkadeService {
      * which is the opposite of what this app is for.
      */
     private announce(funds: IncomingFundsLike): void {
-        const total =
+        /*
+         * Only what has not been announced before counts. Filtering the outputs
+         * rather than dropping the whole event keeps an arrival that mixes a
+         * repeat with something genuinely new, and reports the new part alone.
+         */
+        const arrived =
             funds.type === "vtxo"
-                ? funds.newVtxos.reduce((sum, v) => sum + v.value, 0)
-                : funds.coins.reduce((sum, c) => sum + c.value, 0);
+                ? funds.newVtxos.filter((vtxo) => this.firstSight(vtxo))
+                : funds.coins;
+        const total = arrived.reduce((sum, v) => sum + v.value, 0);
         if (total <= 0) return;
 
         const offchain = funds.type === "vtxo";
@@ -585,9 +624,40 @@ export class ArkadeService {
         );
     }
 
+    /**
+     * Whether this output is being seen for the first time.
+     *
+     * An output with no outpoint cannot be recognised on a second sighting, so
+     * it is treated as new -- announcing a repeat is a smaller failure than
+     * swallowing a real arrival.
+     */
+    private firstSight(vtxo: { txid?: string; vout?: number }): boolean {
+        if (vtxo.txid === undefined || vtxo.vout === undefined) return true;
+        const key = `${vtxo.txid}:${vtxo.vout}`;
+        if (this.seen.has(key)) return false;
+        this.seen.add(key);
+        if (this.seen.size > SEEN_VTXOS) {
+            // A Set iterates in insertion order, so the first key is the oldest.
+            const oldest = this.seen.values().next().value;
+            if (oldest !== undefined) this.seen.delete(oldest);
+        }
+        return true;
+    }
+
+    /** Narrate the arrivals held during a send, now that the txid is known. */
+    private release(): void {
+        const held = this.held;
+        this.held = [];
+        for (const funds of held) this.announce(funds);
+    }
+
     private async disconnect(): Promise<void> {
         this.stopListening?.();
         this.stopListening = null;
+        this.lastSend = null;
+        this.sending = false;
+        this.held = [];
+        this.seen.clear();
         this.stopWatching();
         const wallet = this.wallet;
         this.wallet = null;
@@ -654,6 +724,7 @@ export class ArkadeService {
             amount,
             withdrawing: false,
         });
+        this.sending = true;
         try {
             const txid = await this.run("send", (account) =>
                 account.send(address.trim(), amount)
@@ -671,6 +742,13 @@ export class ArkadeService {
             return txid;
         } finally {
             this.pending.set(null);
+            /*
+             * After the txid is recorded, so held change is recognised as
+             * change. A send that threw leaves `lastSend` null and anything
+             * held is narrated as an ordinary arrival, which is what it is.
+             */
+            this.sending = false;
+            this.release();
         }
     }
 
