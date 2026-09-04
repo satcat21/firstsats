@@ -157,7 +157,13 @@ interface Toast {
             flex-direction: column-reverse;
             gap: 10px;
             width: 100%;
-            max-width: 380px;
+            /*
+             * Wide enough for the explanation it carries. These are not
+             * one-line alerts -- the panel under the title is a paragraph
+             * teaching the protocol, and at 380px it came out as a narrow
+             * column of six-word lines with the page empty either side.
+             */
+            max-width: 420px;
             margin-left: auto;
             pointer-events: none;
         }
@@ -259,7 +265,7 @@ interface Toast {
             gap: 8px;
             margin: 0;
             font-weight: 650;
-            font-size: 15px;
+            font-size: 16px;
             line-height: 1.4;
             color: var(--fg-muted);
         }
@@ -285,10 +291,20 @@ interface Toast {
         }
 
         /* Indent past the icon so the body reads as one block under the title. */
+        /*
+         * 13.5px, not 12.5.
+         *
+         * Every line in a toast is prose meant to be read, not a status code
+         * glanced at -- the detail says what moved and the panel below explains
+         * why. Both sat a full point under the app's own body text for no
+         * reason beyond a toast conventionally being small, which is a
+         * convention about alerts rather than about explanations.
+         */
         .detail {
             margin: 5px 0 0 26px;
             color: var(--fg-muted);
-            font-size: 12.5px;
+            font-size: 13.5px;
+            line-height: 1.5;
             overflow-wrap: anywhere;
         }
 
@@ -304,14 +320,42 @@ interface Toast {
             background: color-mix(in srgb, var(--tint) 45%, var(--surface-raised));
             border-radius: var(--radius-sm);
             color: var(--fg-muted);
-            font-size: 12.5px;
+            font-size: 13.5px;
             line-height: 1.55;
         }
 
         .more {
             margin: 6px 0 0 18px;
-            font-size: 12.5px;
+            font-size: 13.5px;
             color: var(--accent);
+        }
+
+        @media (max-width: 700px) {
+            /*
+             * The indent goes, and the text takes the width back.
+             *
+             * Lining the body up under the title's first letter is worth the
+             * 26px on a desktop lane. On a phone the toast is the width of the
+             * screen less two gutters, and that indent plus the padding either
+             * side was a fifth of the measure spent on alignment -- which cost
+             * the paragraph inside it a line or two of wrapping.
+             */
+            .detail,
+            .why {
+                margin-left: 0;
+            }
+
+            .more {
+                margin-left: 0;
+            }
+
+            .toast {
+                padding: 12px 8px 12px 12px;
+            }
+
+            .why {
+                padding: 10px;
+            }
         }
 
         /*

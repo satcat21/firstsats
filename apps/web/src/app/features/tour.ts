@@ -340,10 +340,28 @@ export function progressFor(state: {
             margin-bottom: 8px;
         }
 
+        /*
+         * Tall enough for the title it actually holds.
+         *
+         * Material fixes the header at 48px closed and 64px open, which is one
+         * line of title. A chapter name that wraps -- German wraps most of
+         * them on a phone -- overflowed that box and printed itself across the
+         * chapter text below. Height by content, with the fixed heights kept as
+         * a floor so a one-line header still matches every other row.
+         */
+        mat-expansion-panel-header,
+        mat-expansion-panel-header.mat-expanded {
+            height: auto !important;
+            min-height: 48px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+
         mat-panel-title {
             display: flex;
             align-items: center;
             gap: 10px;
+            min-width: 0;
             font-weight: 600;
         }
 

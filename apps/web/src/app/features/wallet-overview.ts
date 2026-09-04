@@ -400,11 +400,17 @@ import { BoardingWatch } from "./boarding-watch";
             color: var(--fg-subtle);
         }
 
+        /*
+         * An amount is one word. Breaking after the number put the unit on a
+         * line of its own and made a two-line row out of a figure nine
+         * characters long.
+         */
         .buckets dd {
             margin: 0;
             font-family: var(--font-mono);
             font-size: 13.5px;
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
 
         .buckets .total dt,
@@ -415,6 +421,35 @@ import { BoardingWatch } from "./boarding-watch";
 
         .onboard {
             margin-top: 18px;
+        }
+
+        @media (max-width: 700px) {
+            /*
+             * The floor under the label comes out on a phone.
+             *
+             * 190px of label plus its question mark leaves a 360px screen --
+             * already three cards deep by the time it gets here -- too little
+             * for the amount, which then wrapped. Alignment between rows is
+             * worth less than the row fitting on one line, and with the labels
+             * this short the marks stay near enough to level anyway.
+             */
+            .buckets dt {
+                min-width: 0;
+            }
+
+            .buckets > div {
+                padding: 10px 11px;
+            }
+
+            /* The title and its two actions, stacked rather than crushed. */
+            mat-card-header {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .headline {
+                font-size: 28px;
+            }
         }
 
         .spin {

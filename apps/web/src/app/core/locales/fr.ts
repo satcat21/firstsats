@@ -490,6 +490,7 @@ export const FR: Messages = {
     "quest.split.hint": "Depuis le menu utilisateurs, affichez l'un à côté de l'autre. Envoyez à nouveau et regardez les deux bouts en même temps.",
 
     "profile.removeNamed": "Supprimer {0}",
+    "profile.removeShort": "Supprimer",
 
     "tour.dock": "Afficher le guide à côté du portefeuille",
     "tour.undock": "Remettre le guide dans son onglet",

@@ -491,6 +491,7 @@ export const EN = {
     "quest.split.hint": "From the user menu, show one beside the other. Then send again and watch both ends at once.",
 
     "profile.removeNamed": "Delete {0}",
+    "profile.removeShort": "Delete",
 
     "tour.dock": "Show the guide beside the wallet",
     "tour.undock": "Put the guide back in its tab",

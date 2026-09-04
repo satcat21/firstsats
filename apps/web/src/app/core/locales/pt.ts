@@ -489,6 +489,7 @@ export const PT: Messages = {
     "quest.split.hint": "No menu de utilizadores, mostra um ao lado do outro. Depois envia outra vez e observa as duas pontas ao mesmo tempo.",
 
     "profile.removeNamed": "Eliminar {0}",
+    "profile.removeShort": "Eliminar",
 
     "tour.dock": "Mostrar o guia ao lado da carteira",
     "tour.undock": "Voltar a colocar o guia no seu separador",

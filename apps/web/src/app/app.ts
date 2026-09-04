@@ -914,15 +914,48 @@ import { firstValueFrom } from "rxjs";
         /* Below this the tour cannot be a column, so it goes back to its tab. */
         /* Too narrow to hold both: stack them rather than crush the brand. */
         @media (max-width: 700px) {
-            /* One column: there is no page centre worth aiming at this narrow,
-               and three regions on one line do not fit. */
+            /*
+             * Back the gutter off.
+             *
+             * 20px each side is a fifth of a 360px phone spent on nothing, and
+             * every card below sits inside two more boxes that each add their
+             * own. The page edge is the cheapest of the three to give up.
+             */
+            :host {
+                padding: 20px 12px 14px;
+            }
+
+            .lanes {
+                padding: 0 12px;
+            }
+
+            /*
+             * Two rows rather than three.
+             *
+             * There is no page centre worth aiming at this narrow, so the
+             * network chip stops being a centred region -- but given a row of
+             * its own it left the controls on a third line, and the wallet
+             * itself started below the fold. The chip is short in every
+             * language and the control cluster is four small targets, so the
+             * two share the second row: chip left, controls right.
+             */
             .top {
-                grid-template-columns: minmax(0, 1fr);
+                grid-template-columns: minmax(0, 1fr) auto;
+                grid-template-areas:
+                    "brand  brand"
+                    "middle controls";
+                align-items: center;
                 gap: 12px;
             }
 
+            .brand {
+                grid-area: brand;
+            }
+
             .middle {
+                grid-area: middle;
                 justify-content: flex-start;
+                min-width: 0;
             }
 
             /*
@@ -933,9 +966,19 @@ import { firstValueFrom } from "rxjs";
              * took the page's horizontal scroll with them -- their own
              * flex-wrap could never engage, because nothing ever made the box
              * narrower than its contents.
+             *
+             * Sharing a row with the network chip, they keep their line and let
+             * the chip beside them be what gives.
              */
             .controls {
-                justify-content: flex-start;
+                grid-area: controls;
+                justify-content: flex-end;
+                flex-wrap: nowrap;
+            }
+
+            /* The chip, not the controls, absorbs a row too narrow for both. */
+            .net {
+                min-width: 0;
             }
         }
 

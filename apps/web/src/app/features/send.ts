@@ -251,8 +251,60 @@ import { Insight } from "../ui/insight";
         </mat-card>
     `,
     styles: `
+        /*
+         * Two halves of the width, not two labels' worth of it.
+         *
+         * Material sizes each toggle to its own text, so the pair was as wide
+         * as the two rail names put together -- past the card edge on a phone,
+         * where the rounded end of the group hung over the border. Splitting
+         * the row evenly makes the control fit any width, and gives the two
+         * rails equal weight, which is the point being made about them.
+         */
         .mode {
+            display: flex;
+            width: 100%;
             margin-bottom: 16px;
+        }
+
+
+        /*
+         * Material's label is one nowrap line centred on a 48px lead. Letting
+         * it wrap is what keeps a long rail name inside its half rather than
+         * pushing the half wider; the line height comes down to match, so two
+         * wrapped lines still sit in a sensible box.
+         *
+         * Centred by flex in both directions rather than by that fixed lead,
+         * which only ever centres one line: with a wrapping neighbour the two
+         * halves are the same height but their labels were not, so the shorter
+         * one sat on the top line instead of in the middle of its half.
+         *
+         * Stretched by flex too, not by a percentage height. The group's own
+         * height is auto -- it is whatever the taller half needs -- and a
+         * percentage against an auto height resolves to auto, so the short half
+         * kept its 48px: its label rode the top and its fill stopped short of
+         * the bottom, leaving a bare strip under the chosen rail. Every level
+         * from the group down is a stretching flex item instead, which needs no
+         * height to be known anywhere.
+         */
+        .mode .mat-button-toggle {
+            display: flex;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .mode ::ng-deep .mat-button-toggle-button {
+            display: flex;
+            flex: 1 1 auto;
+        }
+
+        .mode ::ng-deep .mat-button-toggle-label-content {
+            display: flex;
+            flex: 1 1 auto;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 10px;
+            line-height: 1.3;
+            white-space: normal;
         }
 
         /*

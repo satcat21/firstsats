@@ -327,6 +327,13 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
             align-items: center;
             gap: 12px;
             margin-top: 18px;
+            /*
+             * The measure the step row sizes itself against. The card is what
+             * the row has to fit inside, and on a phone that is a good deal
+             * narrower than the viewport -- three nested boxes narrower -- so
+             * the viewport is the wrong thing to ask.
+             */
+            container-type: inline-size;
         }
 
         .foot .reset {
@@ -343,6 +350,32 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
 
             .foot .reset {
                 justify-self: center;
+            }
+
+            /*
+             * One line, whatever the count.
+             *
+             * Eleven 20px glyphs with 10px between them want 320px, and a phone
+             * card has about 310 -- so the row wrapped, and a single mark on a
+             * second line reads as a twelfth step that went wrong rather than
+             * as the end of the first line. Both the glyph and the gap are now
+             * measured against the card, which keeps the run on one line here
+             * and would keep a twelfth step on it too.
+             */
+            .ticks {
+                flex-wrap: nowrap;
+                gap: clamp(2px, 1.1cqi, 10px);
+                width: 100%;
+            }
+
+            .ticks li {
+                min-width: 0;
+            }
+
+            .ticks .mat-icon {
+                font-size: clamp(14px, 5.8cqi, 20px);
+                width: clamp(14px, 5.8cqi, 20px);
+                height: clamp(14px, 5.8cqi, 20px);
             }
         }
 

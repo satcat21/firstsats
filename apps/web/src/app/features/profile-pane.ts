@@ -175,9 +175,29 @@ const TAB_ICONS: Record<Tab, string> = {
                             <button matButton (click)="toggleEdit()">
                                 {{ i18n.t("common.cancel") }}
                             </button>
-                            <button matButton class="danger" (click)="remove()">
+                            <!--
+                                "Delete", not "Delete Carol". The name made the
+                                button half again as wide as Save and Cancel put
+                                together, so it wrapped onto a line of its own
+                                and stopped reading as one of the three actions
+                                on this form. Nothing is lost by dropping it:
+                                the button sits under the name and colour of the
+                                user it deletes, and the confirmation it opens
+                                names them twice more. The full label stays as
+                                the accessible name, where length costs nothing
+                                and a screen reader reaching this button out of
+                                context still hears who it is for.
+                            -->
+                            <button
+                                matButton
+                                class="danger"
+                                [attr.aria-label]="
+                                    i18n.t('profile.removeNamed', profile().name)
+                                "
+                                (click)="remove()"
+                            >
                                 <mat-icon>delete_forever</mat-icon>
-                                {{ i18n.t("profile.removeNamed", profile().name) }}
+                                {{ i18n.t("profile.removeShort") }}
                             </button>
                         </div>
                     </mat-card-content>
@@ -505,6 +525,27 @@ const TAB_ICONS: Record<Tab, string> = {
 
         :host-context([data-theme="dark"]) .mat-mdc-tab-link:hover {
             background: color-mix(in srgb, var(--ink) 55%, transparent);
+        }
+
+        @media (max-width: 700px) {
+            /*
+             * Five tabs on a phone.
+             *
+             * Material pads a tab by 24px each side and pages the row when it
+             * overflows, so the strip spent 80px on two arrows and still cut a
+             * label in half. Tighter padding and a smaller label fit more of
+             * them before the arrows appear, and what does overflow is now
+             * clipped between words rather than mid-word.
+             */
+            .mat-mdc-tab-link {
+                min-width: 0;
+                padding: 0 12px;
+                font-size: 13px;
+            }
+
+            .tab-icon {
+                margin-right: 4px;
+            }
         }
 
         .loading {

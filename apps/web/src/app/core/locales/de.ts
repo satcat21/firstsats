@@ -490,6 +490,7 @@ export const DE: Messages = {
     "quest.split.hint": "Zeige im Nutzermenü einen neben dem anderen an. Sende dann noch einmal und beobachte beide Seiten gleichzeitig.",
 
     "profile.removeNamed": "{0} löschen",
+    "profile.removeShort": "Löschen",
 
     "tour.dock": "Anleitung neben der Wallet anzeigen",
     "tour.undock": "Anleitung zurück in ihren Tab",

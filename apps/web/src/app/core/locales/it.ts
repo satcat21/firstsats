@@ -490,6 +490,7 @@ export const IT: Messages = {
     "quest.split.hint": "Dal menu utenti, mostrane uno accanto all'altro. Poi invia di nuovo e guarda i due lati insieme.",
 
     "profile.removeNamed": "Elimina {0}",
+    "profile.removeShort": "Elimina",
 
     "tour.dock": "Mostra la guida accanto al portafoglio",
     "tour.undock": "Rimetti la guida nella sua scheda",

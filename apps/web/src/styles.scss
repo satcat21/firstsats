@@ -627,3 +627,55 @@ mat-card-title:has(.heading-icon) {
         border: 1px solid color-mix(in srgb, var(--btn-label) 18%, transparent);
     }
 }
+
+/*
+ * The phone pass.
+ *
+ * Global rather than per-component because the thing being fixed is the same
+ * everywhere: this layout nests cards two and three deep -- a pane holds a
+ * card, the card holds a section, the section holds an insight -- and each
+ * level takes Material's default 16px on both sides. On a 360px screen that is
+ * most of the width gone before any content is laid out, which is why the
+ * amounts, addresses and toggles inside them had nothing left to fit in.
+ *
+ * Cutting the inset at every level is worth more than any single component's
+ * own breakpoint, and it is what those breakpoints assume has already happened.
+ */
+@media (max-width: 700px) {
+    .mat-mdc-card-content,
+    .mat-mdc-card-header,
+    .mat-mdc-card-actions {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    /* A card directly inside another is already inset by its parent. */
+    .mat-mdc-card .mat-mdc-card .mat-mdc-card-content {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    /*
+     * A title that has to share its row with buttons.
+     *
+     * Card headers here are flex rows of a title and one or two actions. The
+     * title is the flex item that should give, and without this it refuses to
+     * go below its longest word -- so the actions were pushed off the right
+     * edge instead of wrapping under.
+     */
+    .mat-mdc-card-header .mat-mdc-card-title {
+        min-width: 0;
+    }
+
+    /*
+     * Bech32 has no spaces in it, so nothing in an address, a txid or an
+     * outpoint is a break opportunity and the browser would rather overflow
+     * than invent one. Every one of these is rendered in the mono face, which
+     * makes that the one reliable place to say so.
+     */
+    .mono,
+    code,
+    .addr {
+        overflow-wrap: anywhere;
+    }
+}
