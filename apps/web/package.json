@@ -21,7 +21,7 @@
     "@angular/material": "^22.1.4",
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
-    "@arkade-os/sdk": "^0.4.67",
+    "@arkade-os/sdk": "^0.4.69",
     "@scure/bip39": "^2.4.0",
     "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",
