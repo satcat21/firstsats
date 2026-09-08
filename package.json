@@ -47,7 +47,7 @@
         "verify:all": "npm run verify && npm run web:build"
     },
     "dependencies": {
-        "@arkade-os/sdk": "^0.4.67",
+        "@arkade-os/sdk": "^0.4.69",
         "@scure/bip39": "^2.4.0",
         "eventsource": "^5.1.1"
     },
