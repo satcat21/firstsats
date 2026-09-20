@@ -18,7 +18,9 @@ import {
     satsArg,
     type AddressView,
     type BalanceView,
+    type ExpiringVtxoView,
     type IncomingFundsLike,
+    type RecoverableView,
     type NetworkPreset,
     type PaymentView,
     type Step,
@@ -88,6 +90,18 @@ const AFTER_SETTLE_MS = 4_000;
  * the next batch is a genuinely fresh start. Trying again is the remedy.
  */
 const ROUND_ATTEMPTS = 3;
+
+/**
+ * How near a batch expiry has to be before the wallet says so.
+ *
+ * Two days. A batch lasts about a week on the public deployments, so this is
+ * late enough that the warning is not permanent furniture -- a banner that is
+ * always up is one nobody reads -- and early enough to leave room for a round
+ * that fails and has to be retried. It is deliberately not tied to the batch
+ * lifetime: what matters is whether a person has time to act, not what
+ * fraction of the batch is left.
+ */
+const EXPIRY_WARN_MS = 2 * 24 * 60 * 60 * 1000;
 
 /**
  * How many arrived outputs to remember for the purpose of not announcing one
@@ -250,6 +264,18 @@ export class ArkadeService {
     );
     readonly steps = signal<Step[]>([]);
     readonly watching = signal(false);
+    /**
+     * Outputs whose batch runs out within {@link EXPIRY_WARN_MS}.
+     *
+     * Empty is the ordinary case and says nothing is due; the wallet only
+     * speaks up when this fills.
+     */
+    readonly expiring = signal<ExpiringVtxoView[]>([]);
+    /**
+     * What a reclaim would actually return, which is not the bucket total --
+     * see `RecoverableView`. Null until the first refresh has answered.
+     */
+    readonly recoverable = signal<RecoverableView | null>(null);
     readonly lastReceived = signal<IncomingFundsLike | null | undefined>(
         undefined
     );
@@ -677,6 +703,15 @@ export class ArkadeService {
             this.vtxos.set(await account.vtxos());
             this.boarding.set(await account.boardingUtxos());
             this.history.set(await account.history());
+            /*
+             * Both read every refresh, because neither is derivable from the
+             * balance. `recoverable` there is the gross figure; this is what a
+             * round would hand back. And an expiry is a deadline rather than an
+             * amount -- nothing in the balance moves as it approaches, which is
+             * exactly what makes it worth a warning.
+             */
+            this.expiring.set(await account.expiring(EXPIRY_WARN_MS));
+            this.recoverable.set(await account.recoverable());
             if (!this.serverInfo()) {
                 this.serverInfo.set(await account.serverInfo());
             }
@@ -776,6 +811,33 @@ export class ArkadeService {
     async settle(): Promise<string> {
         const txid = await this.settling("settle", () =>
             this.run("settle", (account) => account.settle(this.notePhase))
+        );
+        await this.refresh();
+        setTimeout(() => void this.refresh(), AFTER_SETTLE_MS);
+        return txid;
+    }
+
+    /**
+     * Take back what an expired batch stranded.
+     *
+     * Shaped exactly like `settle`, because it is the same thing underneath: a
+     * batch round that hands outputs in and takes equivalent ones back. The
+     * second refresh on a delay is for the same reason -- the indexer this
+     * wallet reads lags the commitment transaction by a moment.
+     */
+    async reclaim(): Promise<string> {
+        const txid = await this.settling("reclaim", () =>
+            this.run("reclaim", (account) => account.reclaim(this.notePhase))
+        );
+        await this.refresh();
+        setTimeout(() => void this.refresh(), AFTER_SETTLE_MS);
+        return txid;
+    }
+
+    /** Restart the expiry clock on outputs that have not run out yet. */
+    async renew(): Promise<string> {
+        const txid = await this.settling("renew", () =>
+            this.run("renew", (account) => account.renew(this.notePhase))
         );
         await this.refresh();
         setTimeout(() => void this.refresh(), AFTER_SETTLE_MS);

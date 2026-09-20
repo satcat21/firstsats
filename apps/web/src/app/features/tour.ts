@@ -54,6 +54,7 @@ export type ChapterId =
     | "receive"
     | "onboard"
     | "send"
+    | "expiry"
     | "exit"
     | "network";
 
@@ -65,6 +66,10 @@ const CHAPTERS: readonly ChapterId[] = [
     "receive",
     "onboard",
     "send",
+    // After sending, before leaving: by here the reader holds VTXOs and has
+    // moved one, which is what makes "and they do not last forever" land. Put
+    // earlier it is a warning about something they do not have yet.
+    "expiry",
     "exit",
     "network",
 ];
@@ -78,6 +83,7 @@ const CHAPTER_ICONS: Record<ChapterId, string> = {
     receive: "call_received",
     onboard: "swap_horiz",
     send: "send",
+    expiry: "schedule",
     exit: "logout",
     network: "hub",
 };
@@ -91,6 +97,8 @@ const CHAPTER_TARGETS: Partial<Record<ChapterId, TourTarget>> = {
     // for new ones.
     onboard: "wallet",
     send: "send",
+    // The buckets are where both remedies live, and where the clock is shown.
+    expiry: "wallet",
 };
 
 /** Where the reader has got to, judged from the wallet rather than from clicks. */
@@ -128,6 +136,15 @@ export function progressFor(state: {
         receive: done(state.total > 0),
         onboard: done(state.hasWallet && state.total > 0 && state.boarding === 0),
         send: done(state.sentAnything),
+        // A reading chapter, deliberately.
+        //
+        // The obvious alternative is to tick it when the reader renews or
+        // reclaims, and that would be wrong: on these deployments a batch
+        // lasts about a week, so a reader who did everything right would be
+        // left with one chapter permanently outstanding through no fault of
+        // their own. The lesson here is knowing the obligation exists; the
+        // wallet warns when it is actually due.
+        expiry: read("expiry"),
         // Only the cooperative exit can be completed here. A unilateral one
         // waits out the server's CSV delay — days on this deployment — so the
         // chapter teaches it and the tick tracks the exit you can actually do.
@@ -268,6 +285,11 @@ export function progressFor(state: {
                                         <app-diagram-network />
                                         <p>{{ i18n.t("tour.network.body3") }}</p>
                                         <p>{{ i18n.t("tour.network.body4") }}</p>
+                                    }
+                                    @case ("expiry") {
+                                        <p>{{ i18n.t("tour.expiry.body2") }}</p>
+                                        <app-diagram-settle />
+                                        <p>{{ i18n.t("tour.expiry.body3") }}</p>
                                     }
                                     @case ("exit") {
                                         <app-diagram-exit />

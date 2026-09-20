@@ -1,6 +1,7 @@
 import {
     ChangeDetectionStrategy,
     Component,
+    computed,
     inject,
     signal,
 } from "@angular/core";
@@ -70,6 +71,50 @@ import { BoardingWatch } from "./boarding-watch";
                             {{ i18n.t("insight.available") }}
                         </app-insight>
                     </p>
+
+                    <!--
+                        Above the buckets, because it is about all of them.
+                        An expiry is the one fact on this screen that no number
+                        reports: nothing in the balance moves as a batch runs
+                        down, and then the money is simply not spendable any
+                        more. The warning is the only place the clock is
+                        visible before it matters.
+                    -->
+                    @if (expiringSoon(); as soon) {
+                        <div class="expiry" role="status">
+                            <mat-icon aria-hidden="true">schedule</mat-icon>
+                            <div class="expiry-body">
+                                <p class="expiry-head">
+                                    {{
+                                        i18n.t(
+                                            "wallet.expiryWarn",
+                                            fmt(soon.value),
+                                            soon.within
+                                        )
+                                    }}
+                                </p>
+                                <p class="subtle">{{ i18n.t("wallet.expiryWhy") }}</p>
+                                <button
+                                    matButton="filled"
+                                    [disabled]="arkade.busy() !== null"
+                                    (click)="renew()"
+                                >
+                                    <mat-icon [class.spin]="arkade.busy() === 'renew'">
+                                        {{
+                                            arkade.busy() === "renew"
+                                                ? "progress_activity"
+                                                : "autorenew"
+                                        }}
+                                    </mat-icon>
+                                    {{
+                                        arkade.busy() === "renew"
+                                            ? i18n.t("wallet.renewing")
+                                            : i18n.t("wallet.renewCta")
+                                    }}
+                                </button>
+                            </div>
+                        </div>
+                    }
 
                     <dl class="buckets">
                         <div class="group">
@@ -224,18 +269,90 @@ import { BoardingWatch } from "./boarding-watch";
                                 }
                             </div>
                         }
+                        <!--
+                            A bucket you can act on, like the two above it.
+                            It was a plain row for as long as there was nothing
+                            to do about it, which left the wallet naming money
+                            as "you can reclaim" and offering no way to.
+                        -->
                         <div>
                             <dt>
-                                <mat-icon class="bucket-icon" aria-hidden="true">
-                                    restore_from_trash
-                                </mat-icon>
-                                {{ i18n.t("wallet.recoverable") }}
+                                <button
+                                    class="bucket-toggle"
+                                    [attr.aria-expanded]="isOpen('recoverable')"
+                                    (click)="toggle('recoverable')"
+                                >
+                                    <mat-icon class="bucket-icon" aria-hidden="true">
+                                        restore_from_trash
+                                    </mat-icon>
+                                    {{ i18n.t("wallet.recoverable") }}
+                                    <mat-icon class="chevron" aria-hidden="true">
+                                        {{
+                                            isOpen("recoverable")
+                                                ? "expand_less"
+                                                : "expand_more"
+                                        }}
+                                    </mat-icon>
+                                </button>
                                 <app-insight [label]="i18n.t('insight.recoverable.label')">
                                     {{ i18n.t("wallet.recoverableHint") }}.
                                 </app-insight>
                             </dt>
                             <dd>{{ fmt(balance.recoverable) }}</dd>
                         </div>
+
+                        @if (isOpen("recoverable")) {
+                            <div class="detail">
+                                <p class="subtle">{{ i18n.t("wallet.reclaimWhy") }}</p>
+                                @if (balance.recoverable > 0) {
+                                    <!--
+                                        The figure on the button is what a round
+                                        would actually hand back, which is not
+                                        always the bucket total: an output under
+                                        the dust limit costs more to spend than
+                                        it holds, and the round may leave it.
+                                        Promising the gross figure and returning
+                                        less would be the wrong lesson about a
+                                        protocol this app exists to explain.
+                                    -->
+                                    <button
+                                        matButton="filled"
+                                        [disabled]="arkade.busy() !== null"
+                                        (click)="reclaim()"
+                                    >
+                                        <mat-icon
+                                            [class.spin]="arkade.busy() === 'reclaim'"
+                                        >
+                                            {{
+                                                arkade.busy() === "reclaim"
+                                                    ? "progress_activity"
+                                                    : "restore_from_trash"
+                                            }}
+                                        </mat-icon>
+                                        {{
+                                            arkade.busy() === "reclaim"
+                                                ? i18n.t("wallet.reclaiming")
+                                                : i18n.t(
+                                                      "wallet.reclaimCta",
+                                                      fmt(reclaimable())
+                                                  )
+                                        }}
+                                    </button>
+                                    @if (arkade.recoverable(); as detail) {
+                                        @if (detail.subdust > 0 && !detail.includesSubdust) {
+                                            <p class="subtle subdust">
+                                                {{
+                                                    i18n.t(
+                                                        "wallet.reclaimSubdust",
+                                                        fmt(detail.subdust)
+                                                    )
+                                                }}
+                                            </p>
+                                        }
+                                    }
+                                }
+                            </div>
+                        }
                         <div class="group">
                             <dt>{{ i18n.t("wallet.groupChain") }}</dt>
                         </div>
@@ -421,6 +538,51 @@ import { BoardingWatch } from "./boarding-watch";
 
         .onboard {
             margin-top: 18px;
+        }
+
+        /*
+         * A warning, not an error. The money is still there and still yours --
+         * what is running out is the time to act without a round. Amber says
+         * "attend to this", where the red used for failures would say
+         * "something has gone wrong", and nothing has yet.
+         */
+        .expiry {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 16px 0 0;
+            padding: 12px 14px;
+            border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border));
+            border-radius: var(--radius-sm);
+            background: var(--warning-soft);
+        }
+
+        .expiry > .mat-icon {
+            flex: none;
+            margin-top: 1px;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            color: var(--warning-on-soft);
+        }
+
+        .expiry-body {
+            min-width: 0;
+        }
+
+        .expiry-head {
+            margin: 0 0 4px;
+            font-weight: 650;
+            color: var(--warning-on-soft);
+        }
+
+        .expiry-body .subtle {
+            margin: 0 0 10px;
+        }
+
+        /* The part of the bucket a round may decline to carry. */
+        .subdust {
+            margin: 8px 0 0;
         }
 
         @media (max-width: 700px) {
@@ -626,6 +788,57 @@ export class WalletOverview {
     settle(): void {
         void this.arkade.settle();
     }
+
+    /** Hand expired outputs back and take live ones in their place. */
+    reclaim(): void {
+        void this.arkade.reclaim();
+    }
+
+    /** Restart the expiry clock before it runs out. */
+    renew(): void {
+        void this.arkade.renew();
+    }
+
+    /**
+     * What a reclaim would return, falling back to the bucket.
+     *
+     * The service reads the two separately and the precise figure arrives a
+     * moment later, so until it does the gross total is the honest answer --
+     * better a number that may shrink than a button that says nothing.
+     */
+    readonly reclaimable = computed(
+        () => this.arkade.recoverable()?.recoverable ?? this.arkade.balance()?.recoverable ?? 0
+    );
+
+    /**
+     * The nearest deadline, as a total and a time to it.
+     *
+     * One line about the whole set rather than one per output: they usually
+     * share a batch, so a list would repeat the same deadline several times
+     * over, and what a reader needs is how long they have and how much turns
+     * on it. Null when nothing is due, which is what hides the warning.
+     */
+    readonly expiringSoon = computed(() => {
+        const vtxos = this.arkade.expiring();
+        if (vtxos.length === 0) return null;
+        const value = vtxos.reduce((sum, vtxo) => sum + vtxo.value, 0);
+        const deadlines = vtxos
+            .map((vtxo) => vtxo.expiresAt)
+            .filter((at): at is number => at !== undefined);
+        const soonest = deadlines.length ? Math.min(...deadlines) : null;
+        return {
+            value,
+            /*
+             * Already past counts as zero rather than as a negative: a batch
+             * that ran out an hour ago is not "expired in -1 hours", and the
+             * reader's remedy is the same either way.
+             */
+            within:
+                soonest === null
+                    ? ""
+                    : this.i18n.duration(Math.max(0, soonest - Date.now())),
+        };
+    });
 
     fmt(value: number | bigint): string {
         return this.i18n.sats(value);

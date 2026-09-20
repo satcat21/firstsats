@@ -87,6 +87,15 @@ export interface WalletLike {
     notifyIncomingFunds(
         callback: (funds: IncomingFundsLike) => void
     ): Promise<() => void>;
+    /**
+     * The half of the SDK that deals in expiry rather than in payments.
+     *
+     * Separate from the wallet proper because the operations on it are not
+     * spends: recovering and renewing both hand outputs back and take
+     * equivalent ones, which is why neither shows up in coin selection or in
+     * the history as a payment.
+     */
+    getVtxoManager(): Promise<VtxoManagerLike>;
     dispose(): Promise<void>;
     readonly arkProvider: { getInfo(): Promise<ArkInfo> };
     readonly dustAmount: bigint;
@@ -105,6 +114,61 @@ export type IncomingFundsLike =
           newVtxos: Array<{ value: number; txid?: string; vout?: number }>;
           spentVtxos: Array<{ value: number }>;
       };
+
+/**
+ * The slice of the SDK's VTXO manager this app uses.
+ *
+ * Narrowed the same way {@link WalletLike} is, and for the same reason: the
+ * tests drive the whole expiry flow against a fake, and a fake that had to
+ * implement the manager's full surface -- asset migration, deprecated signer
+ * rotation, boarding sweeps -- would be most of a mock SDK.
+ */
+export interface VtxoManagerLike {
+    recoverVtxos(onEvent?: (event: SettlementEvent) => void): Promise<string>;
+    getRecoverableBalance(): Promise<{
+        recoverable: bigint;
+        subdust: bigint;
+        includesSubdust: boolean;
+        vtxoCount: number;
+    }>;
+    getExpiringVtxos(thresholdMs?: number): Promise<
+        ReadonlyArray<{
+            txid: string;
+            vout: number;
+            value: number;
+            expiresAt?: Date;
+        }>
+    >;
+    renewVtxos(onEvent?: (event: SettlementEvent) => void): Promise<string>;
+}
+
+/**
+ * What reclaiming would actually hand back.
+ *
+ * Not the same number as {@link BalanceView.recoverable}, and the difference is
+ * the point: an output below the dust limit costs more to spend than it is
+ * worth, so the round may decline to carry it. The bucket reports what is
+ * stranded; this reports what a round would return.
+ */
+export interface RecoverableView {
+    /** What a recovery round would return.  */
+    readonly recoverable: number;
+    /** The part of it that sits under the dust limit. */
+    readonly subdust: number;
+    /** Whether `recoverable` counts `subdust` or leaves it behind. */
+    readonly includesSubdust: boolean;
+    /** How many outputs are involved. */
+    readonly count: number;
+}
+
+/** A virtual output close enough to its batch expiry to be worth acting on. */
+export interface ExpiringVtxoView {
+    readonly txid: string;
+    readonly vout: number;
+    readonly value: number;
+    /** When the batch holding it expires, in ms since epoch, if known. */
+    readonly expiresAt?: number;
+}
 
 /** On/off-ramp operations. Injectable so tests need no live settlement. */
 export interface RampLike {
@@ -856,6 +920,150 @@ export class FirstSatsAccount {
             },
             onEvent
         );
+    }
+
+    /**
+     * What a recovery round would actually return.
+     *
+     * Read separately from the balance because the two answer different
+     * questions -- see {@link RecoverableView}.
+     */
+    async recoverable(): Promise<RecoverableView> {
+        const manager = await this.wallet.getVtxoManager();
+        const view = await manager.getRecoverableBalance();
+        return {
+            recoverable: Number(view.recoverable),
+            subdust: Number(view.subdust),
+            includesSubdust: view.includesSubdust,
+            count: view.vtxoCount,
+        };
+    }
+
+    /**
+     * Virtual outputs whose batch expires within `withinMs`.
+     *
+     * The threshold is the caller's because the right answer depends on the
+     * chain: a batch lasts days on the public deployments, and "soon" for a
+     * reader watching a demo is not "soon" for a wallet holding savings.
+     */
+    async expiring(withinMs: number): Promise<ExpiringVtxoView[]> {
+        const manager = await this.wallet.getVtxoManager();
+        const vtxos = await manager.getExpiringVtxos(withinMs);
+        return vtxos.map((vtxo) => ({
+            txid: vtxo.txid,
+            vout: vtxo.vout,
+            value: vtxo.value,
+            ...(vtxo.expiresAt !== undefined
+                ? { expiresAt: vtxo.expiresAt.getTime() }
+                : {}),
+        }));
+    }
+
+    /**
+     * Take back what expiry stranded.
+     *
+     * An expired batch is one the server may sweep, so the outputs in it stop
+     * being spendable -- they do not stop being yours. A recovery round hands
+     * them in and returns the same value as leaves of a fresh batch, which is
+     * the only route back: they cannot be spent, so they cannot be sent
+     * anywhere, and coin selection has already excluded them.
+     */
+    async reclaim(onEvent?: (event: SettlementEvent) => void): Promise<string> {
+        const before = await this.recoverable();
+        if (before.recoverable <= 0) {
+            throw new PaymentError(
+                "There is nothing to reclaim. Outputs land here when the batch holding " +
+                    "them expires, or when they are too small to be worth spending.",
+                { key: "err.nothingToReclaim" }
+            );
+        }
+        return this.narrator.track(
+            {
+                id: "reclaim.batch",
+                title: `Reclaiming ${sats(before.recoverable)}`,
+                titleMessage: {
+                    key: "step.reclaim.title",
+                    args: [satsArg(before.recoverable)],
+                },
+                before: {
+                    detail: "waiting for the next round",
+                    detailMessage: { key: "step.reclaim.before.detail" },
+                    behindMessage: { key: "step.reclaim.before.why" },
+                    behindTheScenes:
+                        "These outputs are still yours -- an expired batch is one the server " +
+                        "may sweep, not one that took your money. What they are not is " +
+                        "spendable, so there is no payment that could move them. This round " +
+                        "hands them back and returns the same value as leaves of a fresh " +
+                        "batch, which is what makes them spendable again.",
+                },
+                after: (txid: string) => ({
+                    detail: `commitment txid ${short(txid)}`,
+                    detailMessage: {
+                        key: "step.commitment.detail",
+                        args: [short(txid)],
+                    },
+                    behindMessage: { key: "step.reclaim.after.why" },
+                    behindTheScenes:
+                        "Back in the spendable bucket, on a fresh expiry clock. Nothing about " +
+                        "the amount changed; what changed is that a live batch holds it.",
+                    data: { txid },
+                }),
+            },
+            () => this.#recover(onEvent)
+        );
+    }
+
+    async #recover(onEvent?: (event: SettlementEvent) => void): Promise<string> {
+        const manager = await this.wallet.getVtxoManager();
+        return manager.recoverVtxos(onEvent).catch(explainSettlement);
+    }
+
+    /**
+     * Restart the expiry clock on outputs that have not run out yet.
+     *
+     * The difference from {@link reclaim} is which side of the deadline you are
+     * on. Renewing is the obligation Ark actually puts on a holder: come back
+     * before the batch ends and refresh into a new one. Reclaiming is what is
+     * left if you did not.
+     */
+    async renew(onEvent?: (event: SettlementEvent) => void): Promise<string> {
+        return this.narrator.track(
+            {
+                id: "renew.batch",
+                title: "Renewing into a fresh batch",
+                titleMessage: { key: "step.renew.title" },
+                before: {
+                    detail: "waiting for the next round",
+                    detailMessage: { key: "step.renew.before.detail" },
+                    behindMessage: { key: "step.renew.before.why" },
+                    behindTheScenes:
+                        "Every batch has a lifetime, and a virtual output lives only as long " +
+                        "as the batch holding it. Renewing spends these into a round and " +
+                        "takes back the same value in a new batch, which starts the clock " +
+                        "again. This is the obligation Ark puts on you in exchange for " +
+                        "instant, feeless payments: come back online before the deadline.",
+                },
+                after: (txid: string) => ({
+                    detail: `commitment txid ${short(txid)}`,
+                    detailMessage: {
+                        key: "step.commitment.detail",
+                        args: [short(txid)],
+                    },
+                    behindMessage: { key: "step.renew.after.why" },
+                    behindTheScenes:
+                        "The same coins, in a batch that has just begun. The deadline you " +
+                        "were approaching is gone, and a new one is a full batch lifetime " +
+                        "away.",
+                    data: { txid },
+                }),
+            },
+            () => this.#renew(onEvent)
+        );
+    }
+
+    async #renew(onEvent?: (event: SettlementEvent) => void): Promise<string> {
+        const manager = await this.wallet.getVtxoManager();
+        return manager.renewVtxos(onEvent).catch(explainSettlement);
     }
 
     /**

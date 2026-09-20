@@ -22,6 +22,7 @@ import { ArkAddress, TxType } from "@arkade-os/sdk";
 import type {
     IncomingFundsLike,
     RampLike,
+    VtxoManagerLike,
     VtxoRecord,
     WalletLike,
 } from "../src/account.js";
@@ -159,6 +160,19 @@ export interface FakeWalletOptions {
     readonly history?: ArkTransaction[];
     readonly dustAmount?: bigint;
     readonly sendTxid?: string;
+    /** What `getRecoverableBalance` reports, in sats. */
+    readonly recoverable?: number;
+    /** The part of `recoverable` that sits under the dust limit. */
+    readonly subdust?: number;
+    /** What `getExpiringVtxos` hands back, whatever threshold is asked for. */
+    readonly expiring?: ReadonlyArray<{
+        txid: string;
+        vout: number;
+        value: number;
+        expiresAt?: Date;
+    }>;
+    /** Make the recovery round reject, to exercise the failure narration. */
+    readonly recoverError?: Error;
     /** Make `sendBitcoin` reject, to exercise the failure narration. */
     readonly sendError?: Error;
     /** Funds to deliver to a `notifyIncomingFunds` subscriber. */
@@ -249,6 +263,37 @@ export class FakeWallet implements WalletLike {
     async settle(): Promise<string> {
         this.calls.push({ method: "settle", args: [] });
         return "f".repeat(64);
+    }
+
+    async getVtxoManager(): Promise<VtxoManagerLike> {
+        this.calls.push({ method: "getVtxoManager", args: [] });
+        const options = this.#options;
+        const calls = this.calls;
+        return {
+            async recoverVtxos(): Promise<string> {
+                calls.push({ method: "recoverVtxos", args: [] });
+                if (options.recoverError) throw options.recoverError;
+                return "a".repeat(64);
+            },
+            async getRecoverableBalance() {
+                calls.push({ method: "getRecoverableBalance", args: [] });
+                const subdust = BigInt(options.subdust ?? 0);
+                return {
+                    recoverable: BigInt(options.recoverable ?? 0),
+                    subdust,
+                    includesSubdust: subdust === 0n,
+                    vtxoCount: options.recoverable ? 1 : 0,
+                };
+            },
+            async getExpiringVtxos(thresholdMs?: number) {
+                calls.push({ method: "getExpiringVtxos", args: [thresholdMs] });
+                return options.expiring ?? [];
+            },
+            async renewVtxos(): Promise<string> {
+                calls.push({ method: "renewVtxos", args: [] });
+                return "b".repeat(64);
+            },
+        };
     }
 
     async notifyIncomingFunds(

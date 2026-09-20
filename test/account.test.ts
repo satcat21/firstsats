@@ -569,3 +569,69 @@ describe("mappers", () => {
         expect(view.isPreconfirmed).toBe(false);
     });
 });
+
+describe("expiry", () => {
+    it("reports what a round would return, not the gross bucket", async () => {
+        // The two differ whenever dust is involved, and the button promises
+        // this number rather than the bucket's.
+        const { account } = makeAccount({ recoverable: 12_000, subdust: 400 });
+        const view = await account.recoverable();
+        expect(view.recoverable).toBe(12_000);
+        expect(view.subdust).toBe(400);
+        expect(view.includesSubdust).toBe(false);
+    });
+
+    it("reclaims through a batch round and says the money was never lost", async () => {
+        const { account, wallet, narrator } = makeAccount({ recoverable: 12_000 });
+        const txid = await account.reclaim();
+
+        expect(txid).toBe("a".repeat(64));
+        expect(wallet.calls.map((c) => c.method)).toContain("recoverVtxos");
+
+        const narration = narrationFor(narrator, "reclaim.batch");
+        expect(narration).toContain("12,000 sats");
+        // The lesson, not just the mechanics: an expired batch is one the
+        // server may sweep, not one that took the money.
+        expect(narration).toContain("still yours");
+    });
+
+    it("refuses to open a round when there is nothing stranded", async () => {
+        const { account, wallet } = makeAccount({ recoverable: 0 });
+        await expect(account.reclaim()).rejects.toThrow(/nothing to reclaim/i);
+        // Cheap to check and the whole point of the guard: no round is opened.
+        expect(wallet.calls.map((c) => c.method)).not.toContain("recoverVtxos");
+    });
+
+    it("passes the caller's horizon through and flattens the deadline", async () => {
+        const at = new Date("2026-01-02T03:04:05Z");
+        const { account, wallet } = makeAccount({
+            expiring: [{ txid: "d".repeat(64), vout: 1, value: 5_000, expiresAt: at }],
+        });
+
+        const soon = await account.expiring(48 * 60 * 60 * 1000);
+
+        expect(soon).toEqual([
+            { txid: "d".repeat(64), vout: 1, value: 5_000, expiresAt: at.getTime() },
+        ]);
+        const call = wallet.calls.find((c) => c.method === "getExpiringVtxos");
+        expect(call?.args[0]).toBe(48 * 60 * 60 * 1000);
+    });
+
+    it("omits a deadline the server did not give, rather than inventing one", async () => {
+        const { account } = makeAccount({
+            expiring: [{ txid: "e".repeat(64), vout: 0, value: 1_000 }],
+        });
+        const soon = await account.expiring(1000);
+        expect(soon).toHaveLength(1);
+        expect(soon[0]?.expiresAt).toBeUndefined();
+    });
+
+    it("renews and explains the obligation rather than just the mechanics", async () => {
+        const { account, wallet, narrator } = makeAccount();
+        const txid = await account.renew();
+
+        expect(txid).toBe("b".repeat(64));
+        expect(wallet.calls.map((c) => c.method)).toContain("renewVtxos");
+        expect(narrationFor(narrator, "renew.batch")).toContain("before the deadline");
+    });
+});
