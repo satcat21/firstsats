@@ -26,11 +26,22 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # Every @angular/* package in one PR, runtime and tooling together.
+      #
+      # `compiler-cli` declares an exact peer on `compiler` -- 22.1.6 wants
+      # 22.1.6, not ^22.1.6 -- so the two have to move in the same commit. They
+      # were not: `compiler` is a dependency and `compiler-cli` a
+      # devDependency, the dev-dependencies group claimed the dev half despite
+      # this group being declared first, and the toolchain split across two PRs
+      # that merged at different times. Every run in between had a skew that
+      # `npm ci` refuses to resolve. Excluding them below is what keeps the
+      # group whole.
       angular:
         patterns: ["@angular/*"]
       dev-dependencies:
         dependency-type: development
         update-types: ["minor", "patch"]
+        exclude-patterns: ["@angular/*"]
     # TypeScript is pinned by Angular here, not by us. The compiler-cli declares
     # a peer dependency of >=6.0 <6.1. The root project has no Angular and tracks TypeScript 7 freely.
     ignore:
