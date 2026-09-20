@@ -23,6 +23,7 @@ import {
     normalizeMnemonic,
 } from "../core/browser-keystore";
 import { I18nService } from "../core/i18n.service";
+import { NetworkService } from "../core/network.service";
 import type { Accent } from "../core/profile.service";
 
 const WORD_COUNT = 12;
@@ -52,7 +53,7 @@ export interface SeedData {
 
             <p class="warn">
                 <mat-icon aria-hidden="true">warning</mat-icon>
-                <span>{{ i18n.t("seed.warning") }}</span>
+                <span>{{ i18n.t("seed.warning", networks.current().label) }}</span>
             </p>
 
             <ol class="words">
@@ -210,6 +211,12 @@ export class SeedDialog {
      */
     readonly data = inject<SeedData | null>(MAT_DIALOG_DATA, { optional: true });
     readonly i18n = inject(I18nService);
+    /*
+     * Named rather than assumed. The warning used to say "a signet demo" in
+     * every language while the app opened on mutinynet -- the same mistake the
+     * withdrawal hint made, and worth no more here than it was there.
+     */
+    readonly networks = inject(NetworkService);
     private readonly ref =
         inject<MatDialogRef<SeedDialog, string | null>>(MatDialogRef);
 

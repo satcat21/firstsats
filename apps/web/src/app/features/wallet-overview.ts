@@ -389,6 +389,26 @@ import { BoardingWatch } from "./boarding-watch";
                         </div>
                     </dl>
 
+                    <!--
+                        Where the keys to all of the above are kept.
+
+                        This is said at two other moments -- when the phrase is
+                        made, and when it is shown -- and both are dialogs you
+                        pass through once. Someone who comes back tomorrow, or
+                        who was handed a link to a wallet already made, meets
+                        neither. The fact belongs beside the balance it applies
+                        to, quietly and without a dismiss button: it does not
+                        stop being true once it has been read.
+                    -->
+                    @if (arkade.stored()?.mnemonic) {
+                        <p class="custody">
+                            <mat-icon aria-hidden="true">key</mat-icon>
+                            {{ i18n.t("wallet.custody") }}
+                            <app-insight [label]="i18n.t('insight.custody.label')">
+                                {{ i18n.t("insight.custody") }}
+                            </app-insight>
+                        </p>
+                    }
                 </mat-card-content>
             </mat-card>
 
@@ -538,6 +558,29 @@ import { BoardingWatch } from "./boarding-watch";
 
         .onboard {
             margin-top: 18px;
+        }
+
+        /*
+         * Muted, not a warning box. An alert that is always on screen stops
+         * being read within a day, and this is a standing fact about the app
+         * rather than something wrong that wants fixing. It sits at the weight
+         * of a footnote and stays legible, which is all it needs to do.
+         */
+        .custody {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin: 16px 0 0;
+            font-size: 12.5px;
+            line-height: 1.45;
+            color: var(--fg-subtle);
+        }
+
+        .custody .mat-icon {
+            flex: none;
+            font-size: 15px;
+            width: 15px;
+            height: 15px;
         }
 
         /*

@@ -69,6 +69,9 @@ export const IT: Messages = {
     "wallet.recoverableHint":
         "Output scaduti o polvere che puoi reclamare",
     "wallet.total": "Totale",
+    "wallet.custody": "La frase di questo portafoglio è salvata in chiaro in questo browser",
+    "insight.custody.label": "Che cosa significa?",
+    "insight.custody": "Le dodici parole stanno nel local storage di questo browser, in chiaro. Tutto ciò che può eseguire script su questa pagina le legge, e così tutto ciò che accede ai file di questo computer: nessuna password viene chiesta perché non ce n'è una. È per questo che questa app è solo per monete di testnet: l'archiviazione è di proposito da dimostrazione, così il protocollo resta l'argomento. Un portafoglio con denaro vero cifra la sua frase, o la tiene del tutto fuori dalla macchina.",
     "wallet.vtxosHeading": "I tuoi output virtuali",
     "wallet.vtxosEmpty": "Ancora nessun VTXO. Ricevi prima un po' di denaro.",
     "wallet.expiresIn": "scade tra {0}",
@@ -554,7 +557,7 @@ export const IT: Messages = {
     "quest.welcomeStart": "Iniziamo",
     "seed.title": "Le tue dodici parole",
     "seed.blurb": "Queste dodici parole sono il portafoglio. Non viene registrato nulla da nessuna parte: chi le ha ha le monete, e chi le perde perde le monete. Estraine altre se vuoi, oppure digita quelle che hai già.",
-    "seed.warning": "Non digitare mai una frase che custodisce denaro vero. Questa è una demo su signet: tiene le parole in chiaro in questo browser, dove qualsiasi script della pagina potrebbe leggerle.",
+    "seed.warning": "Non digitare mai qui una frase che contiene denaro vero. Questa è una demo su {0}: tiene le parole in chiaro in questo browser, dove qualsiasi script di questa pagina potrebbe leggerle.",
     "seed.word": "Parola {0}",
     "seed.valid": "Una frase valida di dodici parole",
     "seed.invalid": "Non è ancora una frase valida: dodici parole dall'elenco BIP39, nell'ordine giusto.",

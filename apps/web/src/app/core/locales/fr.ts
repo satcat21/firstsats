@@ -69,6 +69,9 @@ export const FR: Messages = {
     "wallet.recoverableHint":
         "Sorties expirées ou poussière que vous pouvez récupérer",
     "wallet.total": "Total",
+    "wallet.custody": "La phrase de ce portefeuille est stockée en clair dans ce navigateur",
+    "insight.custody.label": "Qu'est-ce que cela veut dire ?",
+    "insight.custody": "Les douze mots se trouvent en clair dans le stockage local de ce navigateur. Tout ce qui peut exécuter du script sur cette page peut les lire, et tout ce qui accède aux fichiers de cet ordinateur aussi : aucun mot de passe n'est demandé parce qu'il n'y en a pas. C'est pourquoi cette application est réservée aux pièces de testnet : le stockage est volontairement de qualité démo, pour que le protocole reste le sujet. Un portefeuille qui détient de l'argent réel chiffre sa phrase, ou la garde hors de la machine.",
     "wallet.vtxosHeading": "Vos sorties virtuelles",
     "wallet.vtxosEmpty": "Pas encore de VTXO. Recevez d'abord un peu d'argent.",
     "wallet.expiresIn": "expire dans {0}",
@@ -554,7 +557,7 @@ export const FR: Messages = {
     "quest.welcomeStart": "C'est parti",
     "seed.title": "Vos douze mots",
     "seed.blurb": "Ces douze mots sont le portefeuille. Rien n'est enregistré nulle part : qui les détient détient les pièces, et qui les perd perd les pièces. Tirez-en d'autres si vous voulez, ou saisissez les vôtres.",
-    "seed.warning": "N'y saisissez jamais une phrase qui détient de l'argent réel. Ceci est une démo signet : les mots sont conservés en clair dans ce navigateur, où n'importe quel script de cette page pourrait les lire.",
+    "seed.warning": "Ne saisissez jamais ici une phrase qui détient de l'argent réel. Ceci est une démo {0} : elle garde les mots en clair dans ce navigateur, où n'importe quel script de cette page pourrait les lire.",
     "seed.word": "Mot {0}",
     "seed.valid": "Une phrase de douze mots valide",
     "seed.invalid": "Pas encore une phrase valide — douze mots de la liste BIP39, dans le bon ordre.",

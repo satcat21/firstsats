@@ -69,6 +69,9 @@ export const ES: Messages = {
     "wallet.recoverableHint":
         "Salidas caducadas o de polvo que puedes reclamar",
     "wallet.total": "Total",
+    "wallet.custody": "La frase de esta cartera se guarda sin cifrar en este navegador",
+    "insight.custody.label": "¿Qué significa eso?",
+    "insight.custody": "Las doce palabras están en el almacenamiento local de este navegador, en texto plano. Cualquier cosa que pueda ejecutar script en esta página las lee, y también cualquier cosa con acceso a los archivos de este ordenador: no se pide contraseña porque no hay ninguna. Por eso esta app es solo para monedas de testnet: el almacenamiento es de demostración a propósito, para que el protocolo siga siendo el tema. Una cartera con dinero real cifra su frase, o la mantiene fuera de la máquina.",
     "wallet.vtxosHeading": "Tus salidas virtuales",
     "wallet.vtxosEmpty": "Aún no hay VTXOs. Recibe algo de dinero primero.",
     "wallet.expiresIn": "caduca en {0}",
@@ -554,7 +557,7 @@ export const ES: Messages = {
     "quest.welcomeStart": "Empezar",
     "seed.title": "Tus doce palabras",
     "seed.blurb": "Estas doce palabras son el monedero. No se registra nada en ningún sitio: quien las tiene tiene las monedas, y quien las pierde pierde las monedas. Genera otras si quieres, o escribe unas que ya tengas.",
-    "seed.warning": "Nunca escribas una frase que guarde dinero real. Esto es una demo en signet: guarda las palabras sin cifrar en este navegador, donde cualquier script de esta página podría leerlas.",
+    "seed.warning": "Nunca escribas aquí una frase que tenga dinero real. Esto es una demo de {0}: guarda las palabras sin cifrar en este navegador, donde cualquier script de esta página podría leerlas.",
     "seed.word": "Palabra {0}",
     "seed.valid": "Una frase válida de doce palabras",
     "seed.invalid": "Aún no es una frase válida: doce palabras de la lista BIP39, en el orden correcto.",

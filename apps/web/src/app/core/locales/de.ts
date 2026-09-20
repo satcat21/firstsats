@@ -69,6 +69,9 @@ export const DE: Messages = {
     "wallet.recoverableHint":
         "Abgelaufene oder Staub-Outputs, die du zurückholen kannst",
     "wallet.total": "Gesamt",
+    "wallet.custody": "Die Phrase dieser Wallet liegt unverschlüsselt in diesem Browser",
+    "insight.custody.label": "Was heißt das?",
+    "insight.custody": "Die zwölf Wörter liegen im Local Storage dieses Browsers als Klartext. Alles, was auf dieser Seite Skript ausführen kann, liest sie — und ebenso alles, was an die Dateien dieses Rechners kommt. Ein Passwort wird nicht verlangt, weil keines gesetzt ist. Genau deshalb ist diese App nur für Testnet-Coins: Die Speicherung ist bewusst Demo-Qualität, damit das Protokoll das Thema bleibt. Eine Wallet mit echtem Geld verschlüsselt ihre Phrase oder hält sie ganz vom Rechner fern.",
     "wallet.vtxosHeading": "Deine virtuellen Outputs",
     "wallet.vtxosEmpty": "Noch keine VTXOs. Empfange zuerst etwas Geld.",
     "wallet.expiresIn": "noch {0}",
@@ -554,7 +557,7 @@ export const DE: Messages = {
     "quest.welcomeStart": "Los geht's",
     "seed.title": "Deine zwölf Wörter",
     "seed.blurb": "Diese zwölf Wörter sind die Wallet. Nirgends wird etwas registriert — wer sie hat, hat die Coins, und wer sie verliert, verliert die Coins. Würfle ruhig neu oder tippe eine bereits vorhandene Phrase ein.",
-    "seed.warning": "Gib hier nie eine Phrase ein, die echtes Geld hält. Das ist eine Signet-Demo: Sie speichert die Wörter unverschlüsselt in diesem Browser, wo jedes Skript dieser Seite sie lesen könnte.",
+    "seed.warning": "Tippe hier nie eine Phrase ein, die echtes Geld hält. Das ist eine {0}-Demo: Sie hält die Wörter unverschlüsselt in diesem Browser, wo jedes Skript auf dieser Seite sie lesen könnte.",
     "seed.word": "Wort {0}",
     "seed.valid": "Eine gültige Phrase aus zwölf Wörtern",
     "seed.invalid": "Noch keine gültige Phrase — zwölf Wörter aus der BIP39-Liste, in der richtigen Reihenfolge.",
