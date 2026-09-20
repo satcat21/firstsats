@@ -10,6 +10,7 @@ import { ArkAddress, TxType } from "@arkade-os/sdk";
 import { describe, expect, it } from "vitest";
 import {
     arkAddressParts,
+    assertOnchainAddress,
     FirstSatsAccount,
     isArkadeAddress,
     isOnchainAddress,
@@ -303,6 +304,61 @@ describe("address kind", () => {
         expect(isArkadeAddress("")).toBe(false);
         // `b`, `i` and `o` are not in bech32's alphabet.
         expect(isOnchainAddress("tb1bio", "signet")).toBe(false);
+    });
+
+    it("catches a single mistyped character", () => {
+        // The case shape-matching could never see. Last character changed, so
+        // the prefix, the alphabet and the length are all still right and only
+        // the checksum disagrees -- which is what a checksum is for.
+        const typo = `${onchain.slice(0, -1)}k`;
+        expect(typo).toHaveLength(onchain.length);
+        expect(isOnchainAddress(typo, "signet")).toBe(false);
+    });
+
+    it("cannot tell signet from mutinynet, and does not pretend to", () => {
+        // Not an oversight: the two chains use identical address parameters,
+        // so this address is genuinely valid on both and no decoder can say
+        // which one it was meant for. The withdrawal form warns instead.
+        expect(isOnchainAddress(onchain, "signet")).toBe(true);
+        expect(isOnchainAddress(onchain, "mutinynet")).toBe(true);
+    });
+
+    it("names the chain and the checksum when refusing a withdrawal", () => {
+        const typo = `${onchain.slice(0, -1)}k`;
+        expect(() => assertOnchainAddress(typo, TEST_NETWORK)).toThrow(/checksum/i);
+        expect(() => assertOnchainAddress(typo, TEST_NETWORK)).toThrow(
+            new RegExp(TEST_NETWORK.label, "i")
+        );
+    });
+
+    it("sends someone who pasted an arkade address to the right operation", () => {
+        // The likeliest mistake in this field by far, and the error has to say
+        // what to do instead rather than only what is wrong.
+        expect(() => assertOnchainAddress(arkade, TEST_NETWORK)).toThrow(/send/i);
+    });
+
+    it("accepts a good address", () => {
+        expect(() => assertOnchainAddress(onchain, TEST_NETWORK)).not.toThrow();
+    });
+});
+
+describe("withdrawal guards", () => {
+    const onchain = "tb1qmt3ue2senlg6ddgmr76hwsk0rdvdk4rgeaen7l";
+
+    it("refuses a bad destination before any round is opened", async () => {
+        const { account, ramps } = makeAccount();
+        await expect(account.offboard(`${onchain.slice(0, -1)}k`)).rejects.toThrow(
+            /checksum/i
+        );
+        // The point of validating in core: nothing reached the SDK, so there is
+        // no round to fail and no commitment transaction to explain.
+        expect(ramps.offboarded).toHaveLength(0);
+    });
+
+    it("withdraws to a good destination", async () => {
+        const { account, ramps } = makeAccount();
+        await account.offboard(onchain);
+        expect(ramps.offboarded).toEqual([{ destination: onchain }]);
     });
 });
 

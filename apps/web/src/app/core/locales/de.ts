@@ -503,7 +503,10 @@ export const DE: Messages = {
     "send.modeWithdraw": "Onchain auszahlen",
     "send.withdrawLabel": "Onchain-Bitcoin-Adresse",
     "send.withdrawPlaceholder": "tb1…",
-    "send.withdrawHint": "Eine Signet-Adresse, keine Arkade-Adresse",
+    "send.withdrawHint": "Eine {0}-Adresse, keine Arkade-Adresse",
+    "send.withdrawLookalike": "{1} verwendet Adressen, die mit denen von {0} identisch sind. Prüfe, dass diese für {0} ist — Coins auf der falschen Chain lassen sich nicht zurückholen.",
+    "err.badOnchainAddress": "„{0}“ ist keine gültige {1}-Adresse. Prüfe sie auf einen Tippfehler — jede Bitcoin-Adresse trägt eine Prüfsumme, und diese passt nicht — und prüfe die Chain: diese Wallet ist auf {1}.",
+    "err.arkAddressForWithdrawal": "„{0}“ ist eine Arkade-Adresse, keine Onchain-Adresse. Eine Auszahlung geht auf die Blockchain und braucht deshalb eine gewöhnliche Bitcoin-Adresse. Um jemanden innerhalb von Arkade zu bezahlen, nimm „In Ark zahlen“.",
     "send.withdrawSubmit": "Alles auszahlen",
     "send.withdrawWhole": "Damit wird dein gesamtes Guthaben ausgezahlt — {0}. Es geht in die nächste Batch-Runde, dauert also etwa eine Minute und kostet eine Onchain-Gebühr.",
     "send.withdrawWholeIncludingBoarding":

@@ -148,11 +148,35 @@ import { Insight } from "../ui/insight";
                                 </app-insight>
                                 {{
                                     withdrawing()
-                                        ? i18n.t("send.withdrawHint")
+                                        ? i18n.t(
+                                              "send.withdrawHint",
+                                              arkade.network.label
+                                          )
                                         : i18n.t("send.addressHint")
                                 }}
                             </mat-hint>
                         </mat-form-field>
+
+                        <!--
+                            No validator can catch this one. Signet and
+                            mutinynet use identical address parameters, so an
+                            address for either decodes perfectly on the other
+                            and the coins land on a chain this wallet never
+                            queries. Only the reader can tell them apart, and
+                            only if told to.
+                        -->
+                        @if (withdrawing() && lookalikes().length > 0) {
+                            <p class="lookalike">
+                                <mat-icon aria-hidden="true">warning</mat-icon>
+                                {{
+                                    i18n.t(
+                                        "send.withdrawLookalike",
+                                        arkade.network.label,
+                                        lookalikes().join(", ")
+                                    )
+                                }}
+                            </p>
+                        }
 
                         <!-- Its own line rather than a mat-error: these inputs
                              carry no form control, so the field has no error
@@ -346,6 +370,31 @@ import { Insight } from "../ui/insight";
          * at the card edge -- two lines of the same explanation beginning at two
          * different left margins. Matching that inset lines them up.
          */
+        /*
+         * Under the field, not beside the hint. It is a different kind of
+         * statement: the hint says what to type, this says what typing the
+         * wrong thing costs, and the two read as one run-on sentence when they
+         * share a line.
+         */
+        .lookalike {
+            display: flex;
+            align-items: flex-start;
+            gap: 7px;
+            margin: 8px 0 0;
+            padding-left: 16px;
+            font-size: 13px;
+            line-height: 1.45;
+            color: var(--warning-on-soft);
+        }
+
+        .lookalike .mat-icon {
+            flex: none;
+            margin-top: 1px;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
+
         .whole {
             margin: 6px 0 0;
             padding-left: 16px;
@@ -502,6 +551,18 @@ export class Send {
      */
     readonly withdrawable = computed(
         () => (this.arkade.balance()?.available ?? 0) + this.arkade.boardingConfirmed()
+    );
+
+    /**
+     * Chains whose addresses are indistinguishable from this one's.
+     *
+     * Named in the warning so the reader knows which mistake is available to
+     * them. `lookalikeChains` already lists these -- the boarding watch scans
+     * them to find coins a faucet sent to the wrong one -- and a withdrawal is
+     * the same hazard pointing outwards.
+     */
+    readonly lookalikes = computed(() =>
+        (this.arkade.network.lookalikeChains ?? []).map((chain) => chain.label)
     );
 
     /** Off-chain payment, or a collaborative exit back to the chain. */

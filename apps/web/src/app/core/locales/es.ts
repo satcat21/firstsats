@@ -503,7 +503,10 @@ export const ES: Messages = {
     "send.modeWithdraw": "Retirar en cadena",
     "send.withdrawLabel": "Dirección Bitcoin en cadena",
     "send.withdrawPlaceholder": "tb1…",
-    "send.withdrawHint": "Una dirección de signet, no una arkade",
+    "send.withdrawHint": "Una dirección de {0}, no una arkade",
+    "send.withdrawLookalike": "{1} usa direcciones idénticas a las de {0}. Comprueba que esta sea de {0}: las monedas enviadas a la cadena equivocada no se pueden recuperar.",
+    "err.badOnchainAddress": "«{0}» no es una dirección de {1} válida. Búscale una errata —toda dirección de Bitcoin lleva una suma de verificación, y esta no cuadra— y comprueba la cadena: esta cartera está en {1}.",
+    "err.arkAddressForWithdrawal": "«{0}» es una dirección arkade, no una en cadena. Retirar paga en la blockchain, así que necesita una dirección de Bitcoin normal. Para pagar a alguien dentro de Arkade, usa «Pagar en Ark».",
     "send.withdrawSubmit": "Retirar todo",
     "send.withdrawWhole": "Esto retira todo tu saldo: {0}. Se une a la próxima ronda de lote, así que tarda alrededor de un minuto y paga una comisión en cadena.",
     "send.withdrawWholeIncludingBoarding":
