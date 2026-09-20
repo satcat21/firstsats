@@ -37,16 +37,13 @@
     />
     <!-- Tells the browser to paint the correct ground colour before Angular boots. -->
     <meta name="color-scheme" content="light dark" />
-    <!-- The icon font is self-hosted (see styles.scss) and preloaded: it is
-         on the critical path, because without it every mat-icon renders as its
-         ligature text first. -->
-    <link
-      rel="preload"
-      as="font"
-      type="font/woff2"
-      href="fonts/material-symbols-outlined.woff2"
-      crossorigin
-    />
+    <!--
+      No preload for the icon font, though it is on the critical path.
+      Production hashes it into media/ under a name only the build knows, so a
+      static href here pointed at a file that has never existed in a release
+      build and 404'd on every load. The stylesheet's own url() finds it, and
+      font-display: block covers the gap until it lands.
+    -->
     <link rel="icon" type="image/svg+xml" href="logo.svg" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <meta name="theme-color" content="#351791" />
