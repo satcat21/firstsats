@@ -15,6 +15,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { I18nService } from "../core/i18n.service";
+import { NetworkService } from "../core/network.service";
 import type { Messages } from "../core/messages";
 import { ACCENTS } from "../core/profile.service";
 import { QUESTS, type QuestId, QuestService } from "../core/quest.service";
@@ -93,8 +94,10 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
                                     </span>
                                 }
                             </p>
-                            <h3>{{ i18n.t(titleKey(task.id)) }}</h3>
-                            <p class="hint">{{ i18n.t(hintKey(task.id)) }}</p>
+                            <!-- The chain is passed to every task; the ones
+                                 that do not name it ignore it. -->
+                            <h3>{{ i18n.t(titleKey(task.id), chain()) }}</h3>
+                            <p class="hint">{{ i18n.t(hintKey(task.id), chain()) }}</p>
                         </div>
                     } @else {
                         <div class="task done" role="status">
@@ -140,7 +143,7 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
                             [class.looking]="i === shown() && reviewing()"
                             [matTooltip]="
                                 i <= index()
-                                    ? i18n.t(titleKey(task.id))
+                                    ? i18n.t(titleKey(task.id), chain())
                                     : i18n.t('quest.locked')
                             "
                         >
@@ -148,7 +151,7 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
                                 type="button"
                                 class="tick"
                                 [disabled]="i > index()"
-                                [attr.aria-label]="i18n.t(titleKey(task.id))"
+                                [attr.aria-label]="i18n.t(titleKey(task.id), chain())"
                                 [attr.aria-current]="i === shown() ? 'step' : null"
                                 (click)="goTo(i)"
                             >
@@ -450,6 +453,10 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
 export class QuestPanel {
     readonly quest = inject(QuestService);
     readonly i18n = inject(I18nService);
+    private readonly networks = inject(NetworkService);
+
+    /** The deployment these tasks are about, named rather than assumed. */
+    readonly chain = computed(() => this.networks.current().label);
 
     readonly quests = QUESTS;
 
@@ -537,7 +544,7 @@ export class QuestPanel {
                     width: "min(440px, calc(100vw - 32px))",
                     data: {
                         title: this.i18n.t("quest.restartTitle"),
-                        message: this.i18n.t("quest.restartConfirm"),
+                        message: this.i18n.t("quest.restartConfirm", this.chain()),
                         confirmLabel: this.i18n.t("quest.restartAction"),
                         cancelLabel: this.i18n.t("common.cancel"),
                         destructive: true,

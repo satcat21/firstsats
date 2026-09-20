@@ -28,6 +28,7 @@ import { MatExpansionModule } from "@angular/material/expansion";
 import { MatIconModule } from "@angular/material/icon";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { I18nService } from "../core/i18n.service";
+import { NetworkService } from "../core/network.service";
 import type { Messages } from "../core/messages";
 import { ProfileService } from "../core/profile.service";
 import { QuestService } from "../core/quest.service";
@@ -261,7 +262,9 @@ export function progressFor(state: {
                             </mat-expansion-panel-header>
 
                             <div class="chapter">
-                                <p>{{ i18n.t(bodyKey(id)) }}</p>
+                                <!-- The chain is passed to every chapter;
+                                     the ones that do not name it ignore it. -->
+                                <p>{{ i18n.t(bodyKey(id), networks.current().label) }}</p>
 
                                 @switch (id) {
                                     @case ("why") {
@@ -294,7 +297,14 @@ export function progressFor(state: {
                                     @case ("exit") {
                                         <app-diagram-exit />
                                         <p>{{ i18n.t("tour.exit.body2") }}</p>
-                                        <p>{{ i18n.t("tour.exit.body3") }}</p>
+                                        <p>
+                                            {{
+                                                i18n.t(
+                                                    "tour.exit.body3",
+                                                    networks.current().label
+                                                )
+                                            }}
+                                        </p>
                                     }
                                 }
 
@@ -467,6 +477,7 @@ export function progressFor(state: {
 })
 export class Tour {
     readonly i18n = inject(I18nService);
+    readonly networks = inject(NetworkService);
     private readonly profiles = inject(ProfileService);
     private readonly quest = inject(QuestService);
     private readonly wallets = inject(WalletRegistry);

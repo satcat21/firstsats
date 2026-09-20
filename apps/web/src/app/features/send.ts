@@ -101,7 +101,9 @@ import { Insight } from "../ui/insight";
                                 <dt>{{ i18n.t("send.minerFee") }}</dt>
                                 <dd>{{ i18n.sats(facts.fee) }}</dd>
                             </dl>
-                            <p class="subtle note">{{ i18n.t("send.feeShared") }}</p>
+                            <p class="subtle note">
+                                {{ i18n.t("send.feeShared", arkade.network.label) }}
+                            </p>
                         }
                         <p class="subtle note">
                             {{
