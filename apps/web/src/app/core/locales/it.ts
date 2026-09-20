@@ -503,7 +503,11 @@ export const IT: Messages = {
     "send.modeWithdraw": "Preleva on-chain",
     "send.withdrawLabel": "Indirizzo Bitcoin on-chain",
     "send.withdrawPlaceholder": "tb1…",
-    "send.withdrawHint": "Un indirizzo signet, non uno arkade",
+    "send.withdrawHint": "Un indirizzo {0}, non uno arkade",
+    "send.withdrawLookalike": "{1} usa indirizzi identici a quelli di {0}. Controlla che questo sia per {0}: le monete inviate sulla catena sbagliata non si recuperano.",
+    "err.badOnchainAddress": "«{0}» non è un indirizzo {1} valido. Cercaci un errore di battitura — ogni indirizzo Bitcoin porta una somma di controllo, e questa non torna — e controlla la catena: questo portafoglio è su {1}.",
+    "err.foreignServer": "«{0}» è stato emesso da un altro server Arkade. Questo portafoglio è su {1}, e un indirizzo funziona solo con il server che lo ha emesso: per questo pagamento non c'è rotta. Controlla da quale rete viene l'indirizzo.",
+    "err.arkAddressForWithdrawal": "«{0}» è un indirizzo arkade, non uno on-chain. Un prelievo paga sulla blockchain, quindi serve un normale indirizzo Bitcoin. Per pagare qualcuno dentro Arkade, usa «Paga in Ark».",
     "send.withdrawSubmit": "Preleva tutto",
     "send.withdrawWhole": "Questo preleva tutto il tuo saldo — {0}. Si unisce al prossimo giro di batch, quindi richiede circa un minuto e paga una commissione on-chain.",
     "send.withdrawWholeIncludingBoarding":

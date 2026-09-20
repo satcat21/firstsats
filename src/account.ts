@@ -28,9 +28,11 @@ import {
     type SettlementEvent,
     type SettleParams,
     TxType,
+    toXOnlySignerHex,
     type Wallet,
     type WalletBalance,
 } from "@arkade-os/sdk";
+import { Address, NETWORK, TEST_NETWORK } from "@scure/btc-signer";
 import type { NetworkPreset } from "./config.js";
 import { btc, btcArg, type StepArg, sats, satsArg, short } from "./format.js";
 import {
@@ -622,6 +624,13 @@ export class FirstSatsAccount {
     async send(address: string, amount: number): Promise<string> {
         assertSendableAmount(amount);
         assertArkadeAddress(address);
+        /*
+         * Before the balance is read, so the wrong-server case fails on its own
+         * terms rather than as whatever the server says when it is handed an
+         * output it cannot co-sign.
+         */
+        const server = await this.wallet.arkProvider.getInfo();
+        assertSameServer(address, server.signerPubkey, this.network);
 
         const dust = Number(this.wallet.dustAmount);
         if (dust > 0 && amount < dust) {
@@ -1071,6 +1080,7 @@ export class FirstSatsAccount {
      * payment to `destination`.
      */
     async offboard(destination: string): Promise<string> {
+        assertOnchainAddress(destination, this.network);
         const info = await this.wallet.arkProvider.getInfo();
         return this.narrator.track(
             {
@@ -1313,42 +1323,35 @@ export function isArkadeAddress(address: string): boolean {
 }
 
 /**
- * On-chain address prefixes, per network preset.
+ * The address parameters each deployment's chain actually uses.
  *
- * Signet and mutinynet are both signet-family and share testnet's `tb1`.
+ * Signet and mutinynet share testnet's, prefix and version bytes alike, which
+ * is why an address for one decodes perfectly on the other.
  */
-const ONCHAIN_PREFIXES: Record<string, readonly string[]> = {
-    bitcoin: ["bc1"],
-    signet: ["tb1"],
-    mutinynet: ["tb1"],
-    regtest: ["bcrt1"],
+const CHAIN_PARAMS: Record<string, typeof NETWORK> = {
+    bitcoin: NETWORK,
+    signet: TEST_NETWORK,
+    mutinynet: TEST_NETWORK,
+    // Testnet's parameters under its own prefix; btc-signer ships no constant.
+    regtest: { bech32: "bcrt", pubKeyHash: 111, scriptHash: 196, wif: 239 },
 };
-
-/** Base58 leading characters for the legacy forms each network still accepts. */
-const LEGACY_PREFIXES: Record<string, readonly string[]> = {
-    bitcoin: ["1", "3"],
-    signet: ["m", "n", "2"],
-    mutinynet: ["m", "n", "2"],
-    regtest: ["m", "n", "2"],
-};
-
-/** bech32's alphabet: no `1`, `b`, `i` or `o`, so they cannot be misread. */
-const BECH32_CHARSET = /^[qpzry9x8gf2tvdw0s3jn54khce6mua7l]+$/;
 
 /**
- * Whether this looks like an on-chain address on the given network.
+ * Whether this is a spendable on-chain address on the given network.
  *
- * Shape only: prefix, alphabet and length. It deliberately does not verify the
- * bech32 checksum, which would need a decoder this project does not otherwise
- * depend on -- so a single mistyped character passes here and is caught by the
- * server instead.
+ * Decoded rather than pattern-matched. This checked prefix, alphabet and length
+ * only, on the reasoning that a checksum needed a decoder the project did not
+ * otherwise depend on and that a mistyped character would be caught by the
+ * server anyway. The first half stopped being true -- the SDK already ships
+ * `@scure/btc-signer`, so the decoder was in the tree all along -- and the
+ * second was never a good bargain for a payment that cannot be undone: it made
+ * the server's behaviour part of this app's safety argument without ever
+ * checking what that behaviour is.
  *
- * That is the right trade for what this is for. The mistake worth catching in a
- * form is the *wrong kind* of address -- an arkade address in the withdrawal
- * field, or a mainnet address on a testnet build -- and those are wrong by
- * prefix, which this does catch. Being stricter risks rejecting a valid address
- * the app has simply never seen, which is a worse failure than a round trip to
- * the server.
+ * Decoding gives the checksum, which is what bech32 carries one for, and the
+ * network with it. What it cannot give is the difference between signet and
+ * mutinynet: their parameters are identical, so an address for one decodes
+ * perfectly on the other. No validator closes that -- only saying so does.
  */
 export function isOnchainAddress(address: string, network: string): boolean {
     const trimmed = address.trim();
@@ -1357,22 +1360,96 @@ export function isOnchainAddress(address: string, network: string): boolean {
     // An arkade address is never an on-chain one, whatever else it looks like.
     if (isArkadeAddress(trimmed)) return false;
 
-    const lower = trimmed.toLowerCase();
-    const bech32 = ONCHAIN_PREFIXES[network] ?? [];
-    for (const prefix of bech32) {
-        if (!lower.startsWith(prefix)) continue;
-        // The prefix already carries the `1` separator, so what follows is data.
-        const data = lower.slice(prefix.length);
-        // 39 is a P2WPKH payload; the ceiling leaves room for future versions.
-        return data.length >= 30 && data.length <= 71 && BECH32_CHARSET.test(data);
+    const params = CHAIN_PARAMS[network];
+    if (!params) return false;
+
+    try {
+        Address(params).decode(trimmed);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Reject anything that is not a spendable address on this chain.
+ *
+ * In core rather than in the browser form, so the CLI is held to the same rule.
+ * `offboard` had no check at all on either side: `firstsats offboard <anything>`
+ * handed the string straight to the SDK, and the web app was guarded only by
+ * the form. An off-chain payment has had {@link assertArkadeAddress} in front
+ * of it from the start; the one operation that leaves for the blockchain, and
+ * therefore cannot be undone, had nothing.
+ */
+/**
+ * Reject an address issued by a different Arkade server.
+ *
+ * {@link assertArkadeAddress} says the string is an address. This says it is an
+ * address *here*, which is a different question and the one that decides
+ * whether the payment can arrive.
+ *
+ * An arkade address is the issuing server's signing key and your taproot key
+ * encoded together -- {@link arkAddressParts} takes it apart and the Receive
+ * screen shows both halves, on the grounds that the boundary between servers is
+ * visible in the string itself. It was visible everywhere except here: nothing
+ * compared the key in the address against the key of the server being asked to
+ * co-sign.
+ *
+ * That gap has a way of being found. Signet and mutinynet addresses are both
+ * `tark1` and differ only in this key, the header switches between the two
+ * deployments, and the tour invites the reader to try it. Copying an address
+ * from one and pasting it into the other is an ordinary afternoon.
+ */
+export function assertSameServer(
+    address: string,
+    signerPubkey: string,
+    network: NetworkPreset
+): void {
+    const parts = arkAddressParts(address);
+    // Syntax is asserted separately and first; nothing to add if it failed.
+    if (!parts) return;
+
+    // The address carries an x-only key; arkd may advertise a compressed one.
+    if (parts.serverKey === toXOnlySignerHex(signerPubkey)) return;
+
+    throw new PaymentError(
+        `"${short(address.trim(), 16, 8)}" was issued by a different Arkade server. ` +
+            `This wallet is on ${network.label}, whose server signs with ` +
+            `${short(toXOnlySignerHex(signerPubkey), 8, 8)}; the address asks for ` +
+            `${short(parts.serverKey, 8, 8)}. An address only works with the server ` +
+            "that issued it, so there is no route for this payment -- check which " +
+            "network the address came from.",
+        {
+            key: "err.foreignServer",
+            args: [short(address.trim(), 16, 8), network.label],
+        }
+    );
+}
+
+export function assertOnchainAddress(address: string, network: NetworkPreset): void {
+    const trimmed = address.trim();
+
+    if (isArkadeAddress(trimmed)) {
+        throw new PaymentError(
+            `"${short(trimmed, 16, 8)}" is an arkade address, not an on-chain one. ` +
+                "Withdrawing pays out on the blockchain, so it needs an ordinary " +
+                "Bitcoin address. To pay someone inside Arkade, use `send`.",
+            { key: "err.arkAddressForWithdrawal", args: [short(trimmed, 16, 8)] }
+        );
     }
 
-    const legacy = LEGACY_PREFIXES[network] ?? [];
-    if (legacy.some((prefix) => trimmed.startsWith(prefix))) {
-        return trimmed.length >= 26 && trimmed.length <= 35;
+    if (!isOnchainAddress(trimmed, network.name)) {
+        throw new PaymentError(
+            `"${short(trimmed, 16, 8)}" is not a valid ${network.label} address. ` +
+                "Check it for a typo -- every Bitcoin address carries a checksum, and " +
+                "this one does not match -- and check the chain: this wallet is on " +
+                `${network.label}, and an address for another will not do.`,
+            {
+                key: "err.badOnchainAddress",
+                args: [short(trimmed, 16, 8), network.label],
+            }
+        );
     }
-
-    return false;
 }
 
 export function assertArkadeAddress(address: string): void {

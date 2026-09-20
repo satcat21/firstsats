@@ -504,7 +504,11 @@ export const EN = {
     "send.modeWithdraw": "Withdraw on-chain",
     "send.withdrawLabel": "On-chain Bitcoin address",
     "send.withdrawPlaceholder": "tb1…",
-    "send.withdrawHint": "A signet address, not an arkade one",
+    "send.withdrawHint": "A {0} address, not an arkade one",
+    "send.withdrawLookalike": "{1} uses addresses identical to {0}'s. Check this one is for {0} — coins sent to the wrong chain cannot be recovered.",
+    "err.badOnchainAddress": "\"{0}\" is not a valid {1} address. Check it for a typo — every Bitcoin address carries a checksum, and this one does not match — and check the chain: this wallet is on {1}.",
+    "err.foreignServer": "\"{0}\" was issued by a different Arkade server. This wallet is on {1}, and an address only works with the server that issued it — so there is no route for this payment. Check which network the address came from.",
+    "err.arkAddressForWithdrawal": "\"{0}\" is an arkade address, not an on-chain one. Withdrawing pays out on the blockchain, so it needs an ordinary Bitcoin address. To pay someone inside Arkade, use Pay in Ark instead.",
     "send.withdrawSubmit": "Withdraw everything",
     "send.withdrawWhole": "This withdraws your whole balance — {0}. It joins the next batch round, so it takes about a minute and pays an on-chain fee.",
     "send.withdrawWholeIncludingBoarding":

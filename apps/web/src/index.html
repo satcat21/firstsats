@@ -2,6 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!--
+      What this does: stops third-party script loading. script-src 'self' is the
+      directive earning its place. default-src 'none' makes the rest explicit,
+      so an origin left out fails in the console rather than widening the policy.
+
+      style-src cannot avoid 'unsafe-inline': Angular writes component styles at
+      runtime, and the nonce alternative needs a per-response header a static
+      site has none of. frame-ancestors is absent for the same reason.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none';
+               script-src 'self';
+               style-src 'self' 'unsafe-inline';
+               font-src 'self';
+               img-src 'self' data:;
+               connect-src 'self'
+                 https://signet.arkade.sh
+                 https://mutinynet.arkade.sh
+                 https://mempool.signet.arkade.sh
+                 https://mempool.mutinynet.arkade.sh
+                 https://mempool.space;
+               base-uri 'self';
+               form-action 'none';
+               object-src 'none'"
+    />
     <title>firstsats — learn Arkade by sending payments</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
