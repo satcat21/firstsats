@@ -34,14 +34,33 @@ export const TEST_NETWORK: NetworkPreset = NETWORKS.signet;
  * Real arkade addresses, encoded here rather than hard-coded, so they carry a
  * valid bech32m checksum and actually survive `ArkAddress.decode`.
  */
+/**
+ * The server every fake address is issued by.
+ *
+ * Shared so the fake wallet's advertised signer and the addresses it accepts
+ * agree with each other. A payment now checks that they do, so a fake where
+ * they disagree fails every send for the wrong reason.
+ */
+export const FAKE_SERVER_KEY = new Uint8Array(32).fill(1);
+
+/** The same key as arkd advertises it: compressed, with a parity prefix. */
+export const FAKE_SERVER_PUBKEY = `02${"01".repeat(32)}`;
+
+/** An address issued by some other deployment. Nothing here can pay it. */
+export const FOREIGN_ARK_ADDRESS = new ArkAddress(
+    new Uint8Array(32).fill(9),
+    new Uint8Array(32).fill(2),
+    "tark"
+).encode();
+
 export const VALID_ARK_ADDRESS = new ArkAddress(
-    new Uint8Array(32).fill(1),
+    FAKE_SERVER_KEY,
     new Uint8Array(32).fill(2),
     "tark"
 ).encode();
 
 export const OTHER_ARK_ADDRESS = new ArkAddress(
-    new Uint8Array(32).fill(1),
+    FAKE_SERVER_KEY,
     new Uint8Array(32).fill(3),
     "tark"
 ).encode();
@@ -134,7 +153,9 @@ export const FEE_INFO: FeeInfo = {
 export function arkInfo(overrides: Partial<ArkInfo> = {}): ArkInfo {
     return {
         version: "",
-        signerPubkey: "02".padEnd(66, "b"),
+        // Compressed, as arkd advertises it, and the key the fake addresses
+        // above are built from -- so a send can check the two match.
+        signerPubkey: FAKE_SERVER_PUBKEY,
         forfeitPubkey: "02".padEnd(66, "c"),
         forfeitAddress: "tb1qtest",
         checkpointTapscript: "51",

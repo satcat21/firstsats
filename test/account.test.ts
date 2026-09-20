@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import {
     arkAddressParts,
     assertOnchainAddress,
+    assertSameServer,
     FirstSatsAccount,
     isArkadeAddress,
     isOnchainAddress,
@@ -24,9 +25,11 @@ import {
     arkTx,
     balance,
     boardingUtxo,
+    FAKE_SERVER_PUBKEY,
     FakeRamps,
     FakeWallet,
     type FakeWalletOptions,
+    FOREIGN_ARK_ADDRESS,
     ONCHAIN_ADDRESS,
     OTHER_ARK_ADDRESS,
     TEST_NETWORK,
@@ -339,6 +342,43 @@ describe("address kind", () => {
 
     it("accepts a good address", () => {
         expect(() => assertOnchainAddress(onchain, TEST_NETWORK)).not.toThrow();
+    });
+});
+
+describe("paying across servers", () => {
+    it("refuses an address issued by another deployment", async () => {
+        const { account, wallet } = makeAccount({
+            balance: balance({ settled: 50_000 }),
+        });
+
+        await expect(account.send(FOREIGN_ARK_ADDRESS, 1_000)).rejects.toThrow(
+            /different Arkade server/i
+        );
+        // Nothing was submitted: the check is ours, not the server's verdict on
+        // an output it cannot co-sign.
+        expect(wallet.calls.map((c) => c.method)).not.toContain("sendBitcoin");
+    });
+
+    it("names both keys, because the difference is the whole explanation", () => {
+        expect(() =>
+            assertSameServer(FOREIGN_ARK_ADDRESS, FAKE_SERVER_PUBKEY, TEST_NETWORK)
+        ).toThrow(/0909|no route/i);
+    });
+
+    it("matches a compressed signer key against the x-only one in an address", () => {
+        // arkd advertises 33 bytes with a parity prefix; the address carries the
+        // 32-byte x-only form. Comparing them raw would reject every payment.
+        expect(FAKE_SERVER_PUBKEY).toHaveLength(66);
+        expect(() =>
+            assertSameServer(VALID_ARK_ADDRESS, FAKE_SERVER_PUBKEY, TEST_NETWORK)
+        ).not.toThrow();
+    });
+
+    it("leaves a malformed address to the syntax check", () => {
+        // Two errors for one mistake reads as two mistakes.
+        expect(() =>
+            assertSameServer("not-an-address", FAKE_SERVER_PUBKEY, TEST_NETWORK)
+        ).not.toThrow();
     });
 });
 
