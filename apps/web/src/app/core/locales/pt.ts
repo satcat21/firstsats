@@ -505,6 +505,7 @@ export const PT: Messages = {
     "send.withdrawHint": "Um endereço {0}, não um arkade",
     "send.withdrawLookalike": "{1} usa endereços idênticos aos de {0}. Confirma que este é para {0} — moedas enviadas para a cadeia errada não se recuperam.",
     "err.badOnchainAddress": "«{0}» não é um endereço {1} válido. Procura-lhe uma gralha — todos os endereços Bitcoin levam uma soma de verificação, e esta não bate certo — e confirma a cadeia: esta carteira está em {1}.",
+    "err.foreignServer": "«{0}» foi emitido por outro servidor Arkade. Esta carteira está em {1}, e um endereço só funciona com o servidor que o emitiu — não há rota para este pagamento. Confirma de que rede veio o endereço.",
     "err.arkAddressForWithdrawal": "«{0}» é um endereço arkade, não um on-chain. Levantar paga na blockchain, por isso precisa de um endereço Bitcoin normal. Para pagar a alguém dentro do Arkade, usa «Pagar em Ark».",
     "send.withdrawSubmit": "Levantar tudo",
     "send.withdrawWhole": "Isto levanta todo o teu saldo — {0}. Junta-se à próxima ronda de lote, por isso demora cerca de um minuto e paga uma comissão on-chain.",

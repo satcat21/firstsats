@@ -28,6 +28,7 @@ import {
     type SettlementEvent,
     type SettleParams,
     TxType,
+    toXOnlySignerHex,
     type Wallet,
     type WalletBalance,
 } from "@arkade-os/sdk";
@@ -623,6 +624,13 @@ export class FirstSatsAccount {
     async send(address: string, amount: number): Promise<string> {
         assertSendableAmount(amount);
         assertArkadeAddress(address);
+        /*
+         * Before the balance is read, so the wrong-server case fails on its own
+         * terms rather than as whatever the server says when it is handed an
+         * output it cannot co-sign.
+         */
+        const server = await this.wallet.arkProvider.getInfo();
+        assertSameServer(address, server.signerPubkey, this.network);
 
         const dust = Number(this.wallet.dustAmount);
         if (dust > 0 && amount < dust) {
@@ -1373,6 +1381,51 @@ export function isOnchainAddress(address: string, network: string): boolean {
  * of it from the start; the one operation that leaves for the blockchain, and
  * therefore cannot be undone, had nothing.
  */
+/**
+ * Reject an address issued by a different Arkade server.
+ *
+ * {@link assertArkadeAddress} says the string is an address. This says it is an
+ * address *here*, which is a different question and the one that decides
+ * whether the payment can arrive.
+ *
+ * An arkade address is the issuing server's signing key and your taproot key
+ * encoded together -- {@link arkAddressParts} takes it apart and the Receive
+ * screen shows both halves, on the grounds that the boundary between servers is
+ * visible in the string itself. It was visible everywhere except here: nothing
+ * compared the key in the address against the key of the server being asked to
+ * co-sign.
+ *
+ * That gap has a way of being found. Signet and mutinynet addresses are both
+ * `tark1` and differ only in this key, the header switches between the two
+ * deployments, and the tour invites the reader to try it. Copying an address
+ * from one and pasting it into the other is an ordinary afternoon.
+ */
+export function assertSameServer(
+    address: string,
+    signerPubkey: string,
+    network: NetworkPreset
+): void {
+    const parts = arkAddressParts(address);
+    // Syntax is asserted separately and first; nothing to add if it failed.
+    if (!parts) return;
+
+    // The address carries an x-only key; arkd may advertise a compressed one.
+    if (parts.serverKey === toXOnlySignerHex(signerPubkey)) return;
+
+    throw new PaymentError(
+        `"${short(address.trim(), 16, 8)}" was issued by a different Arkade server. ` +
+            `This wallet is on ${network.label}, whose server signs with ` +
+            `${short(toXOnlySignerHex(signerPubkey), 8, 8)}; the address asks for ` +
+            `${short(parts.serverKey, 8, 8)}. An address only works with the server ` +
+            "that issued it, so there is no route for this payment -- check which " +
+            "network the address came from.",
+        {
+            key: "err.foreignServer",
+            args: [short(address.trim(), 16, 8), network.label],
+        }
+    );
+}
+
 export function assertOnchainAddress(address: string, network: NetworkPreset): void {
     const trimmed = address.trim();
 
