@@ -49,7 +49,7 @@
     "dependencies": {
         "@arkade-os/sdk": "^0.4.73",
         "@scure/bip39": "^2.4.0",
-        "@scure/btc-signer": "^2.0.1",
+        "@scure/btc-signer": "^2.4.1",
         "eventsource": "^5.1.1"
     },
     "devDependencies": {
