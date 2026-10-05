@@ -17,6 +17,16 @@ updates:
       dev-dependencies:
         dependency-type: development
         update-types: ["minor", "patch"]
+    # Pinned to the version @arkade-os/sdk pins, not a range.
+    #
+    # The SDK depends on an exact @scure/btc-signer, so a caret here resolves
+    # to a newer one and npm keeps both -- two copies of a Bitcoin library,
+    # plus duplicate @noble/curves and @scure/base under it. Measured at 280 KB
+    # of raw bundle, enough to push the web app past its own size budget. We
+    # use one function from it (address decoding), so there is nothing to gain
+    # on the other side of that trade. Bump it when the SDK does.
+    ignore:
+      - dependency-name: "@scure/btc-signer"
     labels: ["dependencies"]
 
   # The Angular front end is a separate npm project with its own lockfile.
@@ -47,6 +57,8 @@ updates:
     ignore:
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Pinned to the SDK's exact version; see the root project above.
+      - dependency-name: "@scure/btc-signer"
     labels: ["dependencies", "web"]
 
   - package-ecosystem: github-actions
