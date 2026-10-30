@@ -402,7 +402,7 @@ describe("withdrawal guards", () => {
     });
 });
 
-describe("history", () => {
+describe("payment classification", () => {
     it("does not call an un-onboarded boarding payment preconfirmed", () => {
         // Unsettled means two different things. For an Ark payment it is
         // preconfirmed; for a boarding payment it is simply on-chain money that
@@ -596,7 +596,7 @@ describe("waitForFunds", () => {
     });
 });
 
-describe("history", () => {
+describe("history list", () => {
     it("sorts newest first and normalises direction and sign", async () => {
         const { account } = makeAccount({
             history: [
