@@ -1,6 +1,6 @@
 {
     "name": "arkade-firstsats",
-    "version": "0.1.0",
+    "version": "0.4.1",
     "description": "A beginner-friendly reference application for the Arkade TypeScript SDK: create a wallet, receive and send VTXOs, and see exactly what the protocol does at every step.",
     "type": "module",
     "license": "MIT",
