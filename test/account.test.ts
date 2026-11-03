@@ -16,7 +16,6 @@ import {
     isArkadeAddress,
     isOnchainAddress,
     PaymentError,
-    toMillis,
     toPaymentView,
     toVtxoView,
 } from "../src/account.js";
@@ -133,10 +132,12 @@ describe("vtxos", () => {
         expect(narration).toContain("come back online");
     });
 
-    it("converts the indexer's second-based expiry to milliseconds", async () => {
-        const { account } = makeAccount({
-            vtxos: [vtxo({ value: 1, batchExpiry: 1_800_000_000 })],
-        });
+    it("flattens the expiry date to epoch milliseconds", async () => {
+        // The indexer used to report seconds and the view converted them. SDK
+        // 0.5 hands over a Date, so the conversion is gone and the view's job
+        // is only to flatten it into something serialisable.
+        const at = new Date(1_800_000_000_000);
+        const { account } = makeAccount({ vtxos: [vtxo({ value: 1, expiresAt: at })] });
         const [view] = await account.vtxos();
         expect(view?.expiresAt).toBe(1_800_000_000_000);
     });
@@ -640,10 +641,6 @@ describe("close", () => {
 });
 
 describe("mappers", () => {
-    it("passes millisecond timestamps through unchanged", () => {
-        expect(toMillis(1_800_000_000_000)).toBe(1_800_000_000_000);
-    });
-
     it("falls back through the txid key in specificity order", () => {
         expect(
             toPaymentView(

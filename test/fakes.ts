@@ -11,7 +11,7 @@
  */
 
 import type {
-    ArkInfo,
+    ArkadeInfo,
     ArkTransaction,
     ExtendedCoin,
     FeeInfo,
@@ -75,14 +75,24 @@ export function balance(overrides: Partial<WalletBalance> = {}): WalletBalance {
         settled: 0,
         preconfirmed: 0,
         available: 0,
-        gated: 0,
-        intentLocked: 0,
+        contractLocked: 0,
+        pendingSettlement: 0,
+        reserved: 0,
         recoverable: 0,
-        pendingRecovery: 0,
+        deprecatedSignerLocked: 0,
         unrolled: 0,
         total: 0,
         assets: [],
         availableAssets: [],
+        /*
+         * The three names SDK 0.5.2 renamed, still required and still carrying
+         * the same values as the names that replaced them. Zeroed in step with
+         * their replacements above, so a test that sets one through `overrides`
+         * does not leave its alias disagreeing.
+         */
+        gated: 0,
+        intentLocked: 0,
+        pendingRecovery: 0,
         ...overrides,
     };
 }
@@ -94,7 +104,8 @@ export interface VtxoSpec {
     state?: "preconfirmed" | "settled" | "swept" | "spent";
     createdAt?: Date;
     /** Batch expiry, in seconds since epoch, as the indexer reports it. */
-    batchExpiry?: number;
+    /** When the batch holding it ends. A Date since SDK 0.5; it was seconds. */
+    expiresAt?: Date;
 }
 
 export function vtxo(spec: VtxoSpec): VtxoRecord {
@@ -107,12 +118,7 @@ export function vtxo(spec: VtxoSpec): VtxoRecord {
         isPreconfirmed: state === "preconfirmed",
         isSwept: state === "swept",
         isSpent: state === "spent",
-        virtualStatus: {
-            state,
-            ...(spec.batchExpiry !== undefined
-                ? { batchExpiry: spec.batchExpiry }
-                : {}),
-        },
+        ...(spec.expiresAt !== undefined ? { expiresAt: spec.expiresAt } : {}),
     } as unknown as VtxoRecord;
 }
 
@@ -150,7 +156,7 @@ export const FEE_INFO: FeeInfo = {
     txFeeRate: "0",
 };
 
-export function arkInfo(overrides: Partial<ArkInfo> = {}): ArkInfo {
+export function arkInfo(overrides: Partial<ArkadeInfo> = {}): ArkadeInfo {
     return {
         version: "",
         // Compressed, as arkd advertises it, and the key the fake addresses
@@ -169,7 +175,7 @@ export function arkInfo(overrides: Partial<ArkInfo> = {}): ArkInfo {
         serviceStatus: {},
         digest: "d".repeat(64),
         ...overrides,
-    } as unknown as ArkInfo;
+    } as unknown as ArkadeInfo;
 }
 
 export interface FakeWalletOptions {
@@ -210,7 +216,7 @@ export class FakeWallet implements WalletLike {
     readonly #boarding: string[] = [];
 
     readonly dustAmount: bigint;
-    readonly arkProvider: { getInfo(): Promise<ArkInfo> };
+    readonly arkProvider: { getInfo(): Promise<ArkadeInfo> };
 
     #options: FakeWalletOptions;
 

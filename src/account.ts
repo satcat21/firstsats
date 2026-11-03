@@ -19,7 +19,7 @@
 import {
     ArkAddress,
     type ArkadeExtendedVirtualCoin,
-    type ArkInfo,
+    type ArkadeInfo,
     type ArkTransaction,
     type ExtendedCoin,
     type FeeInfo,
@@ -99,7 +99,7 @@ export interface WalletLike {
      */
     getVtxoManager(): Promise<VtxoManagerLike>;
     dispose(): Promise<void>;
-    readonly arkProvider: { getInfo(): Promise<ArkInfo> };
+    readonly arkProvider: { getInfo(): Promise<ArkadeInfo> };
     readonly dustAmount: bigint;
 }
 
@@ -417,13 +417,13 @@ export class FirstSatsAccount {
     }
 
     /** Current parameters of the Arkade server this wallet is talking to. */
-    async serverInfo(): Promise<ArkInfo> {
+    async serverInfo(): Promise<ArkadeInfo> {
         return this.narrator.track(
             {
                 id: "server.info",
                 title: "Asking the Arkade server how it is configured",
                 titleMessage: { key: "step.server.info.title" },
-                after: (info: ArkInfo) => ({
+                after: (info: ArkadeInfo) => ({
                     detail: `network ${info.network}, dust limit ${sats(info.dust)}, batch session ${info.sessionDuration}s`,
                     detailMessage: {
                         key: "step.server.info.detail",
@@ -1224,17 +1224,39 @@ export function toBalanceView(balance: WalletBalance): BalanceView {
     };
 }
 
+/**
+ * The label the SDK used to compute, now computed here.
+ *
+ * `virtualStatus` carried both the expiry and a state word; the SDK dropped it
+ * and left the facts it was derived from on the coin itself. The order is
+ * load-bearing and is the SDK's own: a swept output is also preconfirmed-or-not,
+ * and a spent one may be anything, so asking the questions in another order
+ * silently moves outputs between buckets.
+ */
+function toVtxoState(vtxo: VtxoRecord): VtxoView["state"] {
+    if (vtxo.isSpent) return "spent";
+    if (vtxo.isSwept) return "swept";
+    if (vtxo.isPreconfirmed) return "preconfirmed";
+    return "settled";
+}
+
 export function toVtxoView(vtxo: VtxoRecord): VtxoView {
-    const expiry = vtxo.virtualStatus.batchExpiry;
+    /*
+     * Two forms, because a batch expires either at a time or at a height and
+     * the indexer reports whichever the deployment uses. `expiresAtHeight` is
+     * a block number rather than a timestamp, so it is left alone: a caller
+     * reading it as a date would land in 1970.
+     */
+    const expiry = vtxo.expiresAt?.getTime();
     return {
         txid: vtxo.txid,
         vout: vtxo.vout,
         value: vtxo.value,
-        state: vtxo.virtualStatus.state,
+        state: toVtxoState(vtxo),
         isPreconfirmed: vtxo.isPreconfirmed,
         isSwept: vtxo.isSwept,
         createdAt: vtxo.createdAt.getTime(),
-        ...(expiry !== undefined ? { expiresAt: toMillis(expiry) } : {}),
+        ...(expiry !== undefined ? { expiresAt: expiry } : {}),
     };
 }
 
@@ -1252,11 +1274,6 @@ export function toPaymentView(tx: ArkTransaction): PaymentView {
         ...(tx.key.boardingTxid ? { boardingTxid: tx.key.boardingTxid } : {}),
         ...(tx.key.commitmentTxid ? { commitmentTxid: tx.key.commitmentTxid } : {}),
     };
-}
-
-/** The indexer reports expiry in seconds; anything already in ms is passed through. */
-export function toMillis(timestamp: number): number {
-    return timestamp > 1e12 ? timestamp : timestamp * 1000;
 }
 
 // --- validation ----------------------------------------------------------

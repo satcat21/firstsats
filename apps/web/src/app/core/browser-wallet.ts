@@ -13,9 +13,12 @@
  */
 
 import {
+    EsploraProvider,
     IndexedDBContractRepository,
     IndexedDBWalletRepository,
     MnemonicIdentity,
+    RestArkProvider,
+    RestIndexerProvider,
     Wallet,
 } from "@arkade-os/sdk";
 import type { NetworkPreset } from "@firstsats/core";
@@ -96,8 +99,20 @@ export async function openBrowserWallet(
          * register an intent for the same output, and the server rejects both.
          */
         settlementConfig: false,
-        arkServerUrl: options.network.arkServerUrl,
-        esploraUrl: options.network.esploraUrl,
+        /*
+         * Providers named one by one, rather than the `service` shorthand.
+         *
+         * `service: { operatorUrl }` would let the SDK resolve its own onchain
+         * provider, and this app does not want it to: it reads the same esplora
+         * directly, to answer questions about the mempool that Arkade cannot
+         * (see chain.service.ts). Two different esploras would have the wallet
+         * and the page disagreeing about whether a deposit had arrived. The
+         * config refuses `service` alongside explicit providers, so this is the
+         * form that keeps the two in step.
+         */
+        arkProvider: new RestArkProvider(options.network.arkServerUrl),
+        indexerProvider: new RestIndexerProvider(options.network.arkServerUrl),
+        onchainProvider: new EsploraProvider(options.network.esploraUrl),
         storage: {
             walletRepository: new IndexedDBWalletRepository(database),
             contractRepository: new IndexedDBContractRepository(database),

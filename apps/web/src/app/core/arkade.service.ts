@@ -28,7 +28,7 @@ import {
     type VtxoView,
     type WalletLike,
 } from "@firstsats/core";
-import type { ArkInfo } from "@arkade-os/sdk";
+import type { ArkadeInfo } from "@arkade-os/sdk";
 import { I18nService } from "./i18n.service";
 import { openBrowserWallet } from "./browser-wallet";
 import { NarrationHub } from "./narration-hub";
@@ -224,7 +224,7 @@ export class ArkadeService {
     readonly balance = signal<BalanceView | null>(null);
     readonly vtxos = signal<VtxoView[]>([]);
     readonly history = signal<PaymentView[]>([]);
-    readonly serverInfo = signal<ArkInfo | null>(null);
+    readonly serverInfo = signal<ArkadeInfo | null>(null);
 
     /**
      * Whether a settlement is in flight, for screens that want to say so.

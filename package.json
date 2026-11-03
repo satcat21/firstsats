@@ -1,6 +1,6 @@
 {
     "name": "arkade-firstsats",
-    "version": "0.4.1",
+    "version": "0.5.0",
     "description": "A beginner-friendly reference application for the Arkade TypeScript SDK: create a wallet, receive and send VTXOs, and see exactly what the protocol does at every step.",
     "type": "module",
     "license": "MIT",
@@ -39,6 +39,7 @@
         "test:watch": "vitest",
         "test:e2e": "vitest run test/e2e",
         "audit": "npm audit --audit-level=high --omit=dev",
+        "version": "node scripts/sync-version.mjs",
         "verify": "npm run lint && npm run typecheck && npm run web:typecheck && npm test && npm run audit",
         "web": "node apps/web/scripts/serve.mjs",
         "web:build": "npm --prefix apps/web run build",
@@ -47,7 +48,7 @@
         "verify:all": "npm run verify && npm run web:build"
     },
     "dependencies": {
-        "@arkade-os/sdk": "^0.4.79",
+        "@arkade-os/sdk": "^0.5.3",
         "@scure/bip39": "^2.4.0",
         "@scure/btc-signer": "2.4.1",
         "eventsource": "^5.1.3"
